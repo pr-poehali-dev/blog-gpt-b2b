@@ -81,8 +81,18 @@ const Index = () => {
   });
 
   const activeCategory = categories.find((c) => c.name === active) ?? null;
-  const featured = allArticles[0] ?? null;
-  const rest = allArticles.slice(1, 6);
+
+  // Для "Все" — по одной свежей статье из каждой категории
+  const visibleArticles = active === 'Все'
+    ? categories.reduce<DbArticle[]>((acc, cat) => {
+        const latest = allArticles.find(a => a.category_slug === cat.slug);
+        if (latest) acc.push(latest);
+        return acc;
+      }, [])
+    : allArticles;
+
+  const featured = visibleArticles[0] ?? null;
+  const rest = visibleArticles.slice(1, 7);
 
   return (
     <div className="min-h-screen bg-background grain text-foreground">
@@ -219,7 +229,7 @@ const Index = () => {
           )}
 
           {/* Empty */}
-          {!loadingArticles && allArticles.length === 0 && (
+          {!loadingArticles && visibleArticles.length === 0 && (
             <div className="py-16 text-center border border-dashed border-border">
               <p className="text-muted-foreground">Статьи ещё не опубликованы</p>
               <Link to="/admin/generate" className="mt-3 inline-flex items-center gap-2 text-sm font-medium underline-grow">
