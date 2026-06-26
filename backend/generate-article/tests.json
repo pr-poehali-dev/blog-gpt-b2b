@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "Generate article",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "title": "Unit-экономика SaaS: метрики глазами инвесторов",
+        "category": "Финансы",
+        "excerpt": "CAC, LTV, payback и почему усреднения вводят в заблуждение."
+      },
+      "expectedStatus": 200,
+      "expectedBody": { "content": {} },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

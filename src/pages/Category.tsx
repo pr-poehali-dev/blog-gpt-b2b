@@ -101,7 +101,7 @@ const Category = () => {
           <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight mb-12">Свежие статьи</h2>
 
           {/* Featured */}
-          <article className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer">
+          <Link to={`/article/${category.slug}/${featured.id}`} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer block">
             <div className="aspect-[4/3] overflow-hidden relative" style={{ background: `hsl(${category.accent})` }}>
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.3),transparent_60%)]" />
               <div className="absolute inset-0 flex items-center justify-center">
@@ -129,12 +129,12 @@ const Category = () => {
                 </span>
               </div>
             </div>
-          </article>
+          </Link>
 
           {/* Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
             {rest.map((a) => (
-              <article key={a.id} className="group bg-background p-8 hover:bg-card transition-colors cursor-pointer flex flex-col">
+              <Link to={`/article/${category.slug}/${a.id}`} key={a.id} className="group bg-background p-8 hover:bg-card transition-colors cursor-pointer flex flex-col">
                 <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-6">
                   <span style={{ color: `hsl(${category.accent})` }}>{category.name}</span>
                   <span>·</span>
@@ -148,7 +148,7 @@ const Category = () => {
                   <span>{a.date}</span>
                   <span className="flex items-center gap-1.5"><Icon name="Eye" size={14} /> {a.views}</span>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         </div>
