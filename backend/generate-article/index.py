@@ -1,6 +1,7 @@
 import json
 import os
 import urllib.request
+# v2
 
 def handler(event: dict, context) -> dict:
     """
@@ -25,7 +26,8 @@ def handler(event: dict, context) -> dict:
     if not title:
         return {'statusCode': 400, 'headers': cors, 'body': json.dumps({'error': 'title is required'})}
 
-    api_key = os.environ.get('OPENAI_API_KEY', '')
+    api_key = os.environ.get('OPENAI_API_KEY', '').strip()
+    print(f"[DEBUG] key length={len(api_key)}, prefix={api_key[:8] if api_key else 'EMPTY'}")
     if not api_key:
         return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'API key not configured'})}
 
