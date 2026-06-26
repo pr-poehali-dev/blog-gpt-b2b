@@ -3,6 +3,9 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { categories } from '@/data/categories';
 import { useSeo } from '@/hooks/useSeo';
+import func2url from '../../backend/func2url.json';
+
+const GENERATE_URL = (func2url as Record<string, string>)['generate-article'];
 
 interface Section {
   heading: string;
@@ -86,17 +89,11 @@ const Article = () => {
     ],
   } : { title: 'Статья — BTWOB', description: 'B2B деловой журнал' });
 
-  const getBase = () => {
-    const urls = (window as Record<string, unknown>).__func2url as Record<string, string> || {};
-    return urls['generate-article'] || '/api/generate-article';
-  };
-
   // При открытии статьи — сразу проверяем кэш в БД
   useEffect(() => {
     window.scrollTo(0, 0);
     if (!category || !article) return;
-    const base = getBase();
-    fetch(`${base}?category_slug=${category.slug}&article_id=${article.id}`)
+    fetch(`${GENERATE_URL}?category_slug=${category.slug}&article_id=${article.id}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.content) {
@@ -112,8 +109,7 @@ const Article = () => {
     setLoading(true);
     setError('');
     try {
-      const base = getBase();
-      const res = await fetch(base, {
+      const res = await fetch(GENERATE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

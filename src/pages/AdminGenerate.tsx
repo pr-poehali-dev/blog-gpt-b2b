@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { categories } from '@/data/categories';
+import func2url from '../../backend/func2url.json';
 
 type JobStatus = 'pending' | 'running' | 'done' | 'error' | 'cached';
 
@@ -18,10 +19,7 @@ interface Job {
   message: string;
 }
 
-const getBase = () => {
-  const urls = (window as Record<string, unknown>).__func2url as Record<string, string> || {};
-  return urls['generate-article'] || '/api/generate-article';
-};
+const GENERATE_URL = (func2url as Record<string, string>)['generate-article'];
 
 const buildJobs = (): Job[] =>
   categories.flatMap((cat) =>
@@ -50,9 +48,8 @@ const AdminGenerate = () => {
   const generateAll = async () => {
     setRunning(true);
     setDone(false);
-    const base = getBase();
 
-    const snapshot = buildJobs(); // свежий список с нужными полями
+    const snapshot = buildJobs();
 
     for (const job of snapshot) {
       update(job.key, { status: 'running', message: '' });
@@ -60,7 +57,7 @@ const AdminGenerate = () => {
       // Проверяем кэш
       try {
         const check = await fetch(
-          `${base}?category_slug=${job.categorySlug}&article_id=${job.articleId}`
+          `${GENERATE_URL}?category_slug=${job.categorySlug}&article_id=${job.articleId}`
         );
         if (check.ok) {
           update(job.key, { status: 'cached', message: 'Уже есть в базе' });
@@ -70,7 +67,7 @@ const AdminGenerate = () => {
 
       // Генерируем
       try {
-        const res = await fetch(base, {
+        const res = await fetch(GENERATE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
