@@ -198,7 +198,7 @@ const Article = () => {
             <div className="max-w-3xl">
               <div className="flex items-center gap-3 mb-4 text-xs font-mono uppercase tracking-[0.2em]" style={{ color: `hsl(${category.accent})` }}>
                 <span className="w-6 h-px" style={{ background: `hsl(${category.accent})` }} />
-                {category.name} · {article?.read_time || '—'}
+                {category.name}
               </div>
               {loading ? (
                 <div className="h-12 w-2/3 bg-white/10 animate-pulse rounded" />
