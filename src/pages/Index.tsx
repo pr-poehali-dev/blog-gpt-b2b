@@ -1,14 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
-
-const categories = [
-  { name: 'Стратегия', count: 42, icon: 'Target' },
-  { name: 'Финансы', count: 38, icon: 'TrendingUp' },
-  { name: 'Технологии', count: 56, icon: 'Cpu' },
-  { name: 'Маркетинг', count: 31, icon: 'Megaphone' },
-  { name: 'Управление', count: 27, icon: 'Users' },
-  { name: 'Продажи', count: 44, icon: 'Handshake' },
-];
+import { categories } from '@/data/categories';
 
 const articles = [
   {
@@ -147,12 +140,13 @@ const Index = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-t border-l border-border">
             {categories.map((c) => (
-              <button
-                key={c.name}
+              <Link
+                to={`/category/${c.slug}`}
+                key={c.slug}
                 className="group text-left border-r border-b border-border p-8 hover:bg-foreground hover:text-background transition-colors duration-300"
               >
                 <div className="flex items-center justify-between mb-10">
-                  <Icon name={c.icon} size={26} className="text-accent group-hover:text-background transition-colors" />
+                  <Icon name={c.icon} size={26} className="group-hover:text-background transition-colors" style={{ color: `hsl(${c.accent})` }} />
                   <span className="font-mono text-sm text-muted-foreground group-hover:text-background/60 transition-colors">{c.count}</span>
                 </div>
                 <div className="font-display text-2xl font-semibold tracking-tight flex items-center gap-2">
@@ -160,7 +154,7 @@ const Index = () => {
                   <Icon name="ArrowRight" size={18} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground group-hover:text-background/60 transition-colors">{c.count} материалов</p>
-              </button>
+              </Link>
             ))}
           </div>
         </div>
