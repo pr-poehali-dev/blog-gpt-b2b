@@ -7,14 +7,20 @@ import psycopg2
 def get_db():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
-def fetch_unsplash_image(query: str) -> str:
-    """Ищет фото через официальный Unsplash API, берёт первый результат в размере 1280px."""
+def fetch_unsplash_image(query: str, seed: int = 1) -> str:
+    """Ищет уникальное фото через Unsplash API по точному запросу темы статьи."""
     access_key = os.environ.get('UNSPLASH_ACCESS_KEY', '').strip()
 
     if access_key:
         try:
             encoded = urllib.parse.quote(query)
-            url = f"https://api.unsplash.com/search/photos?query={encoded}&per_page=1&orientation=landscape&content_filter=high"
+            # page варьируется по seed — разные статьи получают разные фото
+            page = (seed % 5) + 1
+            url = (
+                f"https://api.unsplash.com/search/photos"
+                f"?query={encoded}&per_page=5&page={page}"
+                f"&orientation=landscape&content_filter=high"
+            )
             req = urllib.request.Request(url)
             req.add_header('Authorization', f'Client-ID {access_key}')
             req.add_header('Accept-Version', 'v1')
@@ -22,15 +28,19 @@ def fetch_unsplash_image(query: str) -> str:
                 data = json.loads(resp.read())
             results = data.get('results', [])
             if results:
-                img_url = results[0]['urls'].get('regular', results[0]['urls']['full'])
-                return img_url
+                # берём фото по индексу seed чтобы не повторяться
+                idx = seed % len(results)
+                img_url = results[idx]['urls'].get('regular', results[idx]['urls']['full'])
+                # добавляем параметры качества
+                sep = '&' if '?' in img_url else '?'
+                return f"{img_url}{sep}w=1280&q=85&fit=crop"
         except BaseException:
             pass
 
-    # Fallback: source.unsplash.com (без ключа, менее стабильный)
+    # Fallback без ключа
     try:
         encoded = urllib.parse.quote(query)
-        url = f"https://source.unsplash.com/featured/1280x720/?{encoded}"
+        url = f"https://source.unsplash.com/featured/1280x720/?{encoded}&sig={seed}"
         req = urllib.request.Request(url)
         req.add_header('User-Agent', 'Mozilla/5.0')
         with urllib.request.urlopen(req, timeout=10) as resp:
@@ -38,7 +48,15 @@ def fetch_unsplash_image(query: str) -> str:
     except BaseException:
         pass
 
-    return f"https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=1280&q=80"
+    # Финальный фолбэк — набор разных бизнес-фото
+    fallbacks = [
+        "photo-1454165804606-c3d57bc86b40",
+        "photo-1507003211169-0a1dd7228f2d",
+        "photo-1521737604893-d14cc237f11d",
+        "photo-1551434678-e076c223a692",
+        "photo-1460925895917-afdab827c52f",
+    ]
+    return f"https://images.unsplash.com/{fallbacks[seed % len(fallbacks)]}?w=1280&q=85"
 
 def handler(event: dict, context) -> dict:
     """
@@ -74,7 +92,7 @@ def handler(event: dict, context) -> dict:
         row = cur.fetchone()
         conn.close()
 
-        if row:
+        if row and row[1]:  # контент и image_url должны быть
             return {
                 'statusCode': 200,
                 'headers': {**cors, 'Content-Type': 'application/json'},
@@ -135,7 +153,7 @@ def handler(event: dict, context) -> dict:
   - quote: один ключевой факт или принцип (1-2 предложения) — ОБЯЗАТЕЛЬНО
 - conclusion: заключение с призывом к действию (2-3 предложения)
 - key_points: 4 ключевых тезиса всей статьи (кратко, по сути)
-- unsplash_query: поисковый запрос на английском для Unsplash (2-4 слова)
+- unsplash_query: УНИКАЛЬНЫЙ поисковый запрос на английском для Unsplash (3-5 слов), точно отражающий тему ИМЕННО ЭТОЙ статьи. НЕ используй общие слова вроде "business", "office", "meeting". Используй конкретные понятия из темы статьи: например для статьи о воронке продаж — "sales funnel pipeline diagram", для unit-экономики — "financial metrics dashboard analytics", для найма — "executive interview hiring handshake".
 
 Верни ТОЛЬКО валидный JSON без markdown-обёртки:
 {{
@@ -150,7 +168,7 @@ def handler(event: dict, context) -> dict:
   ],
   "conclusion": "...",
   "key_points": ["тезис 1", "тезис 2", "тезис 3", "тезис 4"],
-  "unsplash_query": "business strategy"
+  "unsplash_query": "specific topic keywords here"
 }}"""
 
     payload = json.dumps({
@@ -174,8 +192,8 @@ def handler(event: dict, context) -> dict:
         result = json.loads(resp.read())
 
     content = json.loads(result['choices'][0]['message']['content'])
-    unsplash_query = content.pop('unsplash_query', f"{category} business")
-    image_url = fetch_unsplash_image(unsplash_query)
+    unsplash_query = content.pop('unsplash_query', f"{title} {category}")
+    image_url = fetch_unsplash_image(unsplash_query, seed=int(article_id))
 
     # Сохранить в БД
     conn = get_db()
@@ -183,7 +201,7 @@ def handler(event: dict, context) -> dict:
     cur.execute(
         """INSERT INTO articles (article_key, category_slug, article_id, title, category_name, excerpt, content, image_url)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-           ON CONFLICT (article_key) DO NOTHING""",
+           ON CONFLICT (article_key) DO UPDATE SET image_url = EXCLUDED.image_url, updated_at = NOW()""",
         (article_key, category_slug, int(article_id), title, category, excerpt, json.dumps(content), image_url)
     )
     conn.commit()
