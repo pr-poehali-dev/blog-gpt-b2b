@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { categories } from '@/data/categories';
+import { useSeo } from '@/hooks/useSeo';
 
 const stats = [
   { label: 'Просмотров за месяц', value: '1.2M', delta: '+18%', icon: 'Eye' },
@@ -12,6 +13,35 @@ const stats = [
 
 const Index = () => {
   const [active, setActive] = useState('Все');
+
+  useSeo({
+    title: 'BTWOB — B2B деловой журнал о стратегии, финансах и технологиях',
+    description: 'Экспертные статьи для топ-менеджеров и владельцев B2B-компаний. Стратегия, финансы, технологии, маркетинг, управление и продажи.',
+    canonical: '/',
+    keywords: 'B2B журнал, бизнес статьи, стратегия бизнеса, B2B маркетинг, управление компанией, финансы B2B',
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'BTWOB',
+        url: 'https://btwob.ru',
+        description: 'Деловой B2B журнал — стратегия, финансы, технологии, маркетинг',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: 'https://btwob.ru/?q={search_term_string}',
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: 'BTWOB',
+        url: 'https://btwob.ru',
+        logo: 'https://btwob.ru/favicon.svg',
+        sameAs: ['https://btwob.ru'],
+      },
+    ],
+  });
 
   const activeCategory = useMemo(
     () => categories.find((c) => c.name === active) ?? null,

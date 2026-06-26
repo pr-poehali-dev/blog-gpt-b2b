@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { categories } from '@/data/categories';
+import { useSeo } from '@/hooks/useSeo';
 
 interface Section {
   heading: string;
@@ -32,6 +33,58 @@ const Article = () => {
   const accentStyle = category
     ? ({ '--accent': category.accent, '--accent-foreground': category.accentForeground } as React.CSSProperties)
     : {};
+
+  // SEO
+  useSeo(category && article ? {
+    title: `${article.title} | ${category.name} — BTWOB`,
+    description: article.excerpt,
+    canonical: `/article/${category.slug}/${article.id}`,
+    ogImage: imageUrl || undefined,
+    ogType: 'article',
+    keywords: `${article.title}, ${category.name} B2B, деловой журнал, ${category.tagline}`,
+    publishedTime: new Date(article.date.split(' ').reverse().join('-')).toISOString(),
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: article.title,
+        description: article.excerpt,
+        image: imageUrl || `https://btwob.ru/og-default.jpg`,
+        datePublished: article.date,
+        author: { '@type': 'Organization', name: 'BTWOB', url: 'https://btwob.ru' },
+        publisher: {
+          '@type': 'Organization',
+          name: 'BTWOB',
+          logo: { '@type': 'ImageObject', url: 'https://btwob.ru/favicon.svg' },
+        },
+        mainEntityOfPage: { '@type': 'WebPage', '@id': `https://btwob.ru/article/${category.slug}/${article.id}` },
+        articleSection: category.name,
+        inLanguage: 'ru',
+        timeRequired: `PT${article.read.replace(' мин', '')}M`,
+        ...(content ? { articleBody: content.intro } : {}),
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Главная', item: 'https://btwob.ru' },
+          { '@type': 'ListItem', position: 2, name: category.name, item: `https://btwob.ru/category/${category.slug}` },
+          { '@type': 'ListItem', position: 3, name: article.title, item: `https://btwob.ru/article/${category.slug}/${article.id}` },
+        ],
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        ...(content?.key_points ? {
+          mainEntity: content.key_points.map((kp) => ({
+            '@type': 'Question',
+            name: kp,
+            acceptedAnswer: { '@type': 'Answer', text: kp },
+          })),
+        } : {}),
+      },
+    ],
+  } : { title: 'Статья — BTWOB', description: 'B2B деловой журнал' });
 
   const getBase = () => {
     const urls = (window as Record<string, unknown>).__func2url as Record<string, string> || {};

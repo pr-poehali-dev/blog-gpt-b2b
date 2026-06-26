@@ -1,6 +1,37 @@
 import { useParams, Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { getCategory, categories } from '@/data/categories';
+import { useSeo } from '@/hooks/useSeo';
+
+const CategorySeo = ({ slug }: { slug: string }) => {
+  const category = getCategory(slug);
+  useSeo(category ? {
+    title: `${category.name} — статьи и аналитика для B2B | BTWOB`,
+    description: `${category.description} Читайте экспертные материалы в разделе «${category.name}» на BTWOB.`,
+    canonical: `/category/${category.slug}`,
+    keywords: `${category.name} B2B, ${category.name.toLowerCase()} для бизнеса, ${category.tagline}, B2B журнал`,
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: `${category.name} — BTWOB`,
+        description: category.description,
+        url: `https://btwob.ru/category/${category.slug}`,
+        isPartOf: { '@type': 'WebSite', url: 'https://btwob.ru' },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Главная', item: 'https://btwob.ru' },
+          { '@type': 'ListItem', position: 2, name: 'Категории', item: 'https://btwob.ru/#categories' },
+          { '@type': 'ListItem', position: 3, name: category.name, item: `https://btwob.ru/category/${category.slug}` },
+        ],
+      },
+    ],
+  } : { title: 'Категория — BTWOB', description: 'B2B журнал' });
+  return null;
+};
 
 const Category = () => {
   const { slug } = useParams();
@@ -25,6 +56,7 @@ const Category = () => {
 
   return (
     <div className="min-h-screen bg-background grain text-foreground" style={accentStyle}>
+      <CategorySeo slug={category.slug} />
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
         <div className="container flex items-center justify-between h-16">
