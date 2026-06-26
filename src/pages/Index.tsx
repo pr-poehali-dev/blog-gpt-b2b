@@ -175,7 +175,7 @@ const Index = () => {
                   {c.name}
                   <Icon name="ArrowRight" size={18} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground group-hover:text-background/60 transition-colors">{c.count} материалов</p>
+                <p className="mt-1 text-sm text-muted-foreground group-hover:text-background/60 transition-colors">{c.description}</p>
               </Link>
             ))}
           </div>
