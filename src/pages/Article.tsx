@@ -33,8 +33,25 @@ const Article = () => {
     ? ({ '--accent': category.accent, '--accent-foreground': category.accentForeground } as React.CSSProperties)
     : {};
 
+  const getBase = () => {
+    const urls = (window as Record<string, unknown>).__func2url as Record<string, string> || {};
+    return urls['generate-article'] || '/api/generate-article';
+  };
+
+  // При открытии статьи — сразу проверяем кэш в БД
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (!category || !article) return;
+    const base = getBase();
+    fetch(`${base}?category_slug=${category.slug}&article_id=${article.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.content) {
+          setContent(data.content);
+          if (data.image_url) setImageUrl(data.image_url);
+        }
+      })
+      .catch(() => {});
   }, [location.pathname]);
 
   const generate = async () => {
@@ -42,8 +59,7 @@ const Article = () => {
     setLoading(true);
     setError('');
     try {
-      const urls = (window as Record<string, unknown>).__func2url as Record<string, string> || {};
-      const base = urls['generate-article'] || '/api/generate-article';
+      const base = getBase();
       const res = await fetch(base, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,6 +67,8 @@ const Article = () => {
           title: article.title,
           category: category.name,
           excerpt: article.excerpt,
+          category_slug: category.slug,
+          article_id: String(article.id),
         }),
       });
       const data = await res.json();
