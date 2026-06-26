@@ -3,9 +3,16 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { categories } from '@/data/categories';
 
+interface Section {
+  heading: string;
+  paragraphs: string[];
+  list: string[];
+  quote: string;
+}
+
 interface ArticleContent {
   intro: string;
-  sections: { heading: string; text: string }[];
+  sections: Section[];
   conclusion: string;
   key_points: string[];
 }
@@ -18,6 +25,7 @@ const Article = () => {
   const article = category?.articles.find((a) => String(a.id) === articleId);
 
   const [content, setContent] = useState<ArticleContent | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -46,8 +54,12 @@ const Article = () => {
         }),
       });
       const data = await res.json();
-      if (data.content) setContent(data.content);
-      else setError('Не удалось получить контент. Попробуй ещё раз.');
+      if (data.content) {
+        setContent(data.content);
+        if (data.image_url) setImageUrl(data.image_url);
+      } else {
+        setError('Не удалось получить контент. Попробуй ещё раз.');
+      }
     } catch {
       setError('Ошибка соединения. Попробуй ещё раз.');
     } finally {
@@ -65,9 +77,9 @@ const Article = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background grain text-foreground" style={accentStyle}>
+    <div className="min-h-screen bg-background text-foreground" style={accentStyle}>
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="container flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-foreground flex items-center justify-center">
@@ -89,8 +101,49 @@ const Article = () => {
         </div>
       </header>
 
+      {/* Hero image + title overlay */}
+      <section className="relative">
+        {/* Image */}
+        <div className="w-full h-[420px] md:h-[520px] overflow-hidden relative">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={article.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center" style={{ background: `hsl(${category.accent})` }}>
+              <Icon name={category.icon} size={96} style={{ color: `hsl(${category.accentForeground})`, opacity: 0.4 }} />
+            </div>
+          )}
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-foreground/90 via-foreground/40 to-transparent" />
+
+          {/* Title on image */}
+          <div className="absolute bottom-0 left-0 right-0 container pb-10">
+            <div className="max-w-3xl">
+              <div className="flex items-center gap-3 mb-4 text-xs font-mono uppercase tracking-[0.2em]" style={{ color: `hsl(${category.accent})` }}>
+                <span className="w-6 h-px" style={{ background: `hsl(${category.accent})` }} />
+                {category.name} · {article.read}
+              </div>
+              <h1 className="font-display text-3xl md:text-5xl font-bold leading-tight tracking-tight text-white text-balance">
+                {article.title}
+              </h1>
+              <div className="mt-5 flex items-center gap-6 text-sm text-white/70">
+                <span className="flex items-center gap-1.5"><Icon name="Calendar" size={14} /> {article.date}</span>
+                <span className="flex items-center gap-1.5"><Icon name="Eye" size={14} /> {article.views}</span>
+                <span className="flex items-center gap-1.5"><Icon name="Clock" size={14} /> {article.read}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Accent line */}
+        <div className="h-1 w-full" style={{ background: `hsl(${category.accent})` }} />
+      </section>
+
       {/* Breadcrumb */}
-      <div className="container pt-8">
+      <div className="container pt-7 pb-2">
         <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground flex-wrap">
           <Link to="/" className="hover:text-foreground transition-colors">Главная</Link>
           <Icon name="ChevronRight" size={13} />
@@ -100,46 +153,27 @@ const Article = () => {
         </div>
       </div>
 
-      {/* Hero */}
-      <section className="border-b border-border mt-8">
-        <div className="container pb-14">
-          <div className="max-w-3xl">
-            <div className="reveal flex items-center gap-3 mb-6 text-xs font-mono uppercase tracking-[0.2em]" style={{ color: `hsl(${category.accent})` }}>
-              <Icon name={category.icon} size={15} />
-              {category.name} · {article.read}
-            </div>
-            <h1 className="reveal font-display text-4xl md:text-6xl font-bold leading-[0.95] tracking-tight text-balance" style={{ animationDelay: '0.06s' }}>
-              {article.title}
-            </h1>
-            <p className="reveal mt-6 text-lg text-muted-foreground leading-relaxed" style={{ animationDelay: '0.12s' }}>
+      {/* Content */}
+      <section className="container py-10 md:py-16">
+        <div className="grid lg:grid-cols-[1fr_300px] gap-14 items-start">
+
+          {/* Main article body */}
+          <div className="min-w-0">
+
+            {/* Excerpt lead */}
+            <p className="text-xl md:text-2xl leading-relaxed text-foreground/80 font-medium border-l-4 pl-6 mb-10" style={{ borderColor: `hsl(${category.accent})` }}>
               {article.excerpt}
             </p>
-            <div className="reveal mt-8 flex items-center gap-6 text-sm text-muted-foreground" style={{ animationDelay: '0.18s' }}>
-              <span className="flex items-center gap-1.5"><Icon name="Calendar" size={15} /> {article.date}</span>
-              <span className="flex items-center gap-1.5"><Icon name="Eye" size={15} /> {article.views}</span>
-              <span className="flex items-center gap-1.5"><Icon name="Clock" size={15} /> {article.read}</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Color band */}
-        <div className="h-2 w-full" style={{ background: `hsl(${category.accent})` }} />
-      </section>
-
-      {/* Content */}
-      <section className="container py-14 md:py-20">
-        <div className="grid lg:grid-cols-[1fr_320px] gap-16 items-start">
-
-          {/* Main */}
-          <div className="max-w-2xl">
+            {/* Generate CTA */}
             {!content && !loading && (
-              <div className="border border-dashed border-border rounded-none p-12 flex flex-col items-center text-center gap-6">
-                <div className="w-16 h-16 flex items-center justify-center" style={{ background: `hsl(${category.accent} / 0.1)` }}>
-                  <Icon name="Sparkles" size={32} style={{ color: `hsl(${category.accent})` }} />
+              <div className="border border-dashed border-border p-10 flex flex-col items-center text-center gap-6 mb-10">
+                <div className="w-14 h-14 flex items-center justify-center" style={{ background: `hsl(${category.accent} / 0.1)` }}>
+                  <Icon name="Sparkles" size={28} style={{ color: `hsl(${category.accent})` }} />
                 </div>
                 <div>
                   <p className="font-display text-xl font-semibold mb-2">Статья ещё не сгенерирована</p>
-                  <p className="text-sm text-muted-foreground">Нажми кнопку, и GPT-4o напишет полный текст на основе заголовка и темы</p>
+                  <p className="text-sm text-muted-foreground">GPT-4o напишет полный текст с подзаголовками, примерами и выводами</p>
                 </div>
                 <button
                   onClick={generate}
@@ -152,19 +186,21 @@ const Article = () => {
               </div>
             )}
 
+            {/* Loading */}
             {loading && (
               <div className="flex flex-col items-center gap-6 py-20">
                 <div
                   className="w-12 h-12 border-2 border-transparent rounded-full animate-spin"
-                  style={{ borderTopColor: `hsl(${category.accent})`, borderRightColor: `hsl(${category.accent} / 0.3)` }}
+                  style={{ borderTopColor: `hsl(${category.accent})`, borderRightColor: `hsl(${category.accent} / 0.25)` }}
                 />
                 <div className="text-center">
                   <p className="font-display text-lg font-semibold">GPT пишет статью...</p>
-                  <p className="text-sm text-muted-foreground mt-1">Обычно занимает 10–20 секунд</p>
+                  <p className="text-sm text-muted-foreground mt-1">Обычно занимает 15–25 секунд</p>
                 </div>
               </div>
             )}
 
+            {/* Error */}
             {error && (
               <div className="border border-destructive/30 bg-destructive/5 p-6 mb-8">
                 <p className="text-sm text-destructive">{error}</p>
@@ -172,34 +208,85 @@ const Article = () => {
               </div>
             )}
 
+            {/* Article content */}
             {content && (
-              <div className="prose-article">
+              <article>
                 {/* Intro */}
-                <p className="text-lg leading-relaxed text-foreground/90 mb-10 pb-10 border-b border-border font-medium">
+                <p className="text-lg leading-[1.9] text-foreground mb-12 pb-12 border-b border-border">
                   {content.intro}
                 </p>
 
                 {/* Sections */}
                 {content.sections.map((s, i) => (
-                  <div key={i} className="mb-10">
-                    <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight mb-4 flex items-start gap-3">
-                      <span className="font-mono text-sm mt-1.5 shrink-0" style={{ color: `hsl(${category.accent})` }}>
+                  <div key={i} className="mb-14">
+                    {/* Section heading */}
+                    <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight mb-6 flex items-baseline gap-3">
+                      <span
+                        className="font-mono text-xs font-normal shrink-0 px-2 py-1"
+                        style={{ background: `hsl(${category.accent})`, color: `hsl(${category.accentForeground})` }}
+                      >
                         {String(i + 1).padStart(2, '0')}
                       </span>
                       {s.heading}
                     </h2>
-                    <p className="text-base leading-[1.85] text-foreground/80">{s.text}</p>
+
+                    {/* Paragraphs */}
+                    <div className="space-y-5 mb-8">
+                      {s.paragraphs.map((p, j) => (
+                        <p key={j} className="text-base leading-[1.9] text-foreground/85">
+                          {p}
+                        </p>
+                      ))}
+                    </div>
+
+                    {/* List */}
+                    {s.list && s.list.length > 0 && (
+                      <ul className="mb-8 space-y-3 border-l-2 pl-6" style={{ borderColor: `hsl(${category.accent} / 0.4)` }}>
+                        {s.list.map((item, j) => (
+                          <li key={j} className="flex items-start gap-3 text-sm leading-relaxed text-foreground/80">
+                            <span className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ background: `hsl(${category.accent})` }} />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {/* Quote */}
+                    {s.quote && (
+                      <blockquote
+                        className="my-8 px-7 py-5 border-l-4 bg-foreground/[0.03]"
+                        style={{ borderColor: `hsl(${category.accent})` }}
+                      >
+                        <p className="text-base font-medium leading-relaxed text-foreground/90 italic">
+                          {s.quote}
+                        </p>
+                      </blockquote>
+                    )}
+
+                    {/* Divider between sections */}
+                    {i < content.sections.length - 1 && (
+                      <div className="mt-14 flex items-center gap-4">
+                        <div className="flex-1 h-px bg-border" />
+                        <span className="font-mono text-xs text-muted-foreground">§</span>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+                    )}
                   </div>
                 ))}
 
                 {/* Conclusion */}
-                <div className="mt-12 pt-10 border-t border-border">
-                  <h2 className="font-display text-xl font-semibold mb-4 tracking-tight">Итог</h2>
-                  <p className="text-base leading-[1.85] text-foreground/80">{content.conclusion}</p>
+                <div className="mt-12 pt-10 border-t-2 border-border">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-6 h-6 flex items-center justify-center" style={{ background: `hsl(${category.accent})` }}>
+                      <Icon name="CheckCheck" size={14} style={{ color: `hsl(${category.accentForeground})` }} />
+                    </div>
+                    <h2 className="font-display text-xl font-semibold tracking-tight">Итоги</h2>
+                  </div>
+                  <p className="text-base leading-[1.9] text-foreground/85">{content.conclusion}</p>
                 </div>
 
                 {/* Regen */}
-                <div className="mt-12 flex items-center gap-3">
+                <div className="mt-12 pt-8 border-t border-border flex items-center gap-3">
                   <button
                     onClick={generate}
                     className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium border border-border hover:border-foreground transition-colors"
@@ -207,21 +294,29 @@ const Article = () => {
                     <Icon name="RefreshCw" size={14} />
                     Перегенерировать
                   </button>
+                  <span className="text-xs text-muted-foreground">Статья создана с помощью GPT-4o</span>
                 </div>
-              </div>
+              </article>
             )}
           </div>
 
           {/* Sidebar */}
-          <aside className="hidden lg:block space-y-8">
-            {/* Key points */}
+          <aside className="hidden lg:flex flex-col gap-6 sticky top-24">
+
+            {/* Key points — shown after generation */}
             {content?.key_points && (
               <div className="border border-border p-7">
-                <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-5">Ключевые тезисы</div>
-                <ul className="space-y-3">
+                <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-5 flex items-center gap-2">
+                  <Icon name="Lightbulb" size={13} />
+                  Ключевые тезисы
+                </div>
+                <ul className="space-y-4">
                   {content.key_points.map((kp, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm leading-relaxed">
-                      <span className="w-5 h-5 shrink-0 flex items-center justify-center text-xs font-mono mt-0.5" style={{ background: `hsl(${category.accent})`, color: `hsl(${category.accentForeground})` }}>
+                      <span
+                        className="w-5 h-5 shrink-0 flex items-center justify-center text-xs font-mono mt-0.5"
+                        style={{ background: `hsl(${category.accent})`, color: `hsl(${category.accentForeground})` }}
+                      >
                         {i + 1}
                       </span>
                       {kp}
@@ -249,19 +344,22 @@ const Article = () => {
 
             {/* Other articles */}
             <div className="border border-border p-7">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-5">Ещё из {category.name}</div>
-              <ul className="space-y-4">
+              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-5">
+                Ещё из {category.name}
+              </div>
+              <ul className="space-y-5">
                 {category.articles
                   .filter((a) => String(a.id) !== articleId)
                   .slice(0, 3)
                   .map((a) => (
                     <li key={a.id}>
-                      <Link
-                        to={`/article/${category.slug}/${a.id}`}
-                        className="group block"
-                      >
+                      <Link to={`/article/${category.slug}/${a.id}`} className="group block">
                         <p className="text-sm font-medium leading-snug group-hover:opacity-70 transition-opacity">{a.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{a.date} · {a.read}</p>
+                        <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                          <span>{a.date}</span>
+                          <span>·</span>
+                          <span>{a.read}</span>
+                        </div>
                       </Link>
                     </li>
                   ))}

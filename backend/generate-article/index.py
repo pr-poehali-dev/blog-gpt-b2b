@@ -1,13 +1,25 @@
 import json
 import os
 import urllib.request
-# v2
+import urllib.parse
+
+def fetch_unsplash_image(query: str) -> str:
+    """Получает URL фото из Unsplash по запросу."""
+    encoded = urllib.parse.quote(query)
+    url = f"https://source.unsplash.com/1200x630/?{encoded},business"
+    req = urllib.request.Request(url, method='HEAD')
+    req.add_header('User-Agent', 'Mozilla/5.0')
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            return resp.geturl()
+    except BaseException:
+        return "https://source.unsplash.com/1200x630/?business,office"
 
 def handler(event: dict, context) -> dict:
     """
-    Генерирует полный текст статьи по заголовку и категории через GPT-4o.
+    Генерирует структурированную статью через GPT-4o и подбирает фото из Unsplash.
     Принимает: { "title": "...", "category": "...", "excerpt": "..." }
-    Возвращает: { "content": [...sections] }
+    Возвращает: { "content": {...}, "image_url": "..." }
     """
     cors = {
         'Access-Control-Allow-Origin': '*',
@@ -27,34 +39,45 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 400, 'headers': cors, 'body': json.dumps({'error': 'title is required'})}
 
     api_key = os.environ.get('OPENAI_API_KEY', '').strip()
-    print(f"[DEBUG] key length={len(api_key)}, prefix={api_key[:8] if api_key else 'EMPTY'}")
     if not api_key:
         return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'API key not configured'})}
 
-    prompt = f"""Ты — редактор делового B2B-журнала btwob.ru. Напиши полную профессиональную статью на русском языке.
+    prompt = f"""Ты — шеф-редактор делового B2B-журнала btwob.ru. Напиши глубокую профессиональную статью на русском языке.
 
 Категория: {category}
 Заголовок: {title}
 Краткое описание: {excerpt}
 
-Требования:
-- Деловой, строгий, экспертный стиль без воды
-- Структура: 4-5 разделов, каждый с подзаголовком
-- Объём: ~800-1000 слов
-- Конкретные примеры, цифры, практические советы
-- Целевая аудитория: топ-менеджеры и владельцы B2B-бизнеса
+ТРЕБОВАНИЯ К СТИЛЮ:
+- Деловой, строгий, экспертный тон без маркетинговой воды
+- Конкретные цифры, примеры из практики, кейсы
+- Целевая аудитория: CEO, CFO, владельцы B2B-компаний
 
-Верни JSON строго в таком формате (без markdown обёртки):
+ТРЕБОВАНИЯ К СТРУКТУРЕ — строго следуй схеме JSON:
+- intro: сильный вводный абзац (3-4 предложения), захватывает внимание
+- sections: РОВНО 4 раздела. Каждый раздел имеет:
+  - heading: чёткий подзаголовок
+  - paragraphs: массив из 2-3 абзацев (каждый 3-5 предложений)
+  - list: массив из 3-5 пунктов (конкретные советы/факты/шаги) — ОБЯЗАТЕЛЬНО
+  - quote: одна короткая цитата или ключевой факт (1-2 предложения) — ОБЯЗАТЕЛЬНО
+- conclusion: заключение с призывом к действию (2-3 предложения)  
+- key_points: 4 ключевых тезиса всей статьи (кратко, по сути)
+- unsplash_query: поисковый запрос на английском для Unsplash (2-4 слова, тематика статьи)
+
+Верни ТОЛЬКО валидный JSON без markdown-обёртки:
 {{
-  "intro": "вводный абзац",
+  "intro": "...",
   "sections": [
-    {{"heading": "Подзаголовок", "text": "Текст раздела..."}},
-    {{"heading": "Подзаголовок", "text": "Текст раздела..."}},
-    {{"heading": "Подзаголовок", "text": "Текст раздела..."}},
-    {{"heading": "Подзаголовок", "text": "Текст раздела..."}}
+    {{
+      "heading": "...",
+      "paragraphs": ["абзац 1", "абзац 2", "абзац 3"],
+      "list": ["пункт 1", "пункт 2", "пункт 3", "пункт 4"],
+      "quote": "ключевой факт или мысль"
+    }}
   ],
-  "conclusion": "заключительный абзац с выводами",
-  "key_points": ["тезис 1", "тезис 2", "тезис 3"]
+  "conclusion": "...",
+  "key_points": ["тезис 1", "тезис 2", "тезис 3", "тезис 4"],
+  "unsplash_query": "business strategy meeting"
 }}"""
 
     payload = json.dumps({
@@ -74,14 +97,16 @@ def handler(event: dict, context) -> dict:
         method='POST',
     )
 
-    with urllib.request.urlopen(req, timeout=25) as resp:
+    with urllib.request.urlopen(req, timeout=60) as resp:
         result = json.loads(resp.read())
 
-    content_str = result['choices'][0]['message']['content']
-    content = json.loads(content_str)
+    content = json.loads(result['choices'][0]['message']['content'])
+
+    unsplash_query = content.pop('unsplash_query', f"{category} business")
+    image_url = fetch_unsplash_image(unsplash_query)
 
     return {
         'statusCode': 200,
         'headers': {**cors, 'Content-Type': 'application/json'},
-        'body': json.dumps({'content': content}),
+        'body': json.dumps({'content': content, 'image_url': image_url}),
     }
