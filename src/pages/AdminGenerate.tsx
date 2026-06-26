@@ -46,19 +46,42 @@ const AdminGenerate = () => {
   const [schedulerRunning, setSchedulerRunning] = useState(false);
   const [schedulerResult, setSchedulerResult] = useState<string>('');
 
+  const SLUGS = ['strategy', 'finance', 'tech', 'marketing', 'management', 'sales'];
+  const ARTICLES_PER_CAT = 3;
+
   const runScheduler = async () => {
     setSchedulerRunning(true);
     setSchedulerResult('');
-    try {
-      const res = await fetch(SCHEDULER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-      const data = await res.json();
-      const total = (data.results || []).reduce((sum: number, r: { published?: {title: string}[] }) => sum + (r.published?.length || 0), 0);
-      setSchedulerResult(`✓ Опубликовано ${total} новых статей`);
-    } catch {
-      setSchedulerResult('✗ Ошибка запуска планировщика');
-    } finally {
-      setSchedulerRunning(false);
+    let published = 0;
+    let errors = 0;
+
+    for (const slug of SLUGS) {
+      for (let i = 0; i < ARTICLES_PER_CAT; i++) {
+        try {
+          const res = await fetch(SCHEDULER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category_slug: slug }),
+          });
+          if (res.ok) {
+            published++;
+            setSchedulerResult(`Публикуется... ${published} из ${SLUGS.length * ARTICLES_PER_CAT}`);
+          } else {
+            errors++;
+          }
+        } catch {
+          errors++;
+        }
+        // Пауза чтобы не перегрузить API
+        await new Promise((r) => setTimeout(r, 500));
+      }
     }
+
+    const msg = errors > 0
+      ? `✓ Опубликовано ${published} статей, ошибок: ${errors}`
+      : `✓ Опубликовано ${published} новых статей`;
+    setSchedulerResult(msg);
+    setSchedulerRunning(false);
   };
 
   const update = (key: string, patch: Partial<Job>) =>
