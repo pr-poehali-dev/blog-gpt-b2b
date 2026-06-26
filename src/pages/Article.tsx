@@ -211,7 +211,6 @@ const Article = () => {
                 <div className="mt-5 flex items-center gap-6 text-sm text-white/70">
                   <span className="flex items-center gap-1.5"><Icon name="Calendar" size={14} /> {formatDate(article.published_at)}</span>
                   <span className="flex items-center gap-1.5"><Icon name="Eye" size={14} /> {article.views}</span>
-                  <span className="flex items-center gap-1.5"><Icon name="Clock" size={14} /> {article.read_time}</span>
                 </div>
               )}
             </div>
