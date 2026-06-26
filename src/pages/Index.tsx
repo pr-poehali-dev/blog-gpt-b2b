@@ -167,9 +167,8 @@ const Index = () => {
                 key={c.slug}
                 className="group text-left border-r border-b border-border p-8 hover:bg-foreground hover:text-background transition-colors duration-300"
               >
-                <div className="flex items-center justify-between mb-10">
+                <div className="flex items-center mb-10">
                   <Icon name={c.icon} size={26} className="group-hover:text-background transition-colors" style={{ color: `hsl(${c.accent})` }} />
-                  <span className="font-mono text-sm text-muted-foreground group-hover:text-background/60 transition-colors">{c.count}</span>
                 </div>
                 <div className="font-display text-2xl font-semibold tracking-tight flex items-center gap-2">
                   {c.name}
