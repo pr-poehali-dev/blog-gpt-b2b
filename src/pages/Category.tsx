@@ -1,7 +1,11 @@
 import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
 import { getCategory, categories } from '@/data/categories';
 import { useSeo } from '@/hooks/useSeo';
+import func2url from '../../backend/func2url.json';
+
+const GENERATE_URL = (func2url as Record<string, string>)['generate-article'];
 
 const CategorySeo = ({ slug }: { slug: string }) => {
   const category = getCategory(slug);
@@ -36,6 +40,21 @@ const CategorySeo = ({ slug }: { slug: string }) => {
 const Category = () => {
   const { slug } = useParams();
   const category = getCategory(slug || '');
+  const [images, setImages] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!category) return;
+    category.articles.forEach((a) => {
+      fetch(`${GENERATE_URL}?category_slug=${category.slug}&article_id=${a.id}`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => {
+          if (data?.image_url) {
+            setImages((prev) => ({ ...prev, [`${category.slug}_${a.id}`]: data.image_url }));
+          }
+        })
+        .catch(() => {});
+    });
+  }, [slug]);
 
   if (!category) {
     return (
@@ -135,10 +154,18 @@ const Category = () => {
           {/* Featured */}
           <Link to={`/article/${category.slug}/${featured.id}`} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer block">
             <div className="aspect-[4/3] overflow-hidden relative" style={{ background: `hsl(${category.accent})` }}>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.3),transparent_60%)]" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Icon name={category.icon} size={72} style={{ color: `hsl(${category.accentForeground})`, opacity: 0.85 }} />
-              </div>
+              {images[`${category.slug}_${featured.id}`] ? (
+                <img
+                  src={images[`${category.slug}_${featured.id}`]}
+                  alt={featured.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Icon name={category.icon} size={72} style={{ color: `hsl(${category.accentForeground})`, opacity: 0.85 }} />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
               <span className="absolute top-4 left-4 text-xs font-mono uppercase tracking-wider px-3 py-1" style={{ background: `hsl(${category.accentForeground})`, color: `hsl(${category.accent})` }}>
                 Главное
               </span>
@@ -165,23 +192,43 @@ const Category = () => {
 
           {/* Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-            {rest.map((a) => (
-              <Link to={`/article/${category.slug}/${a.id}`} key={a.id} className="group bg-background p-8 hover:bg-card transition-colors cursor-pointer flex flex-col">
-                <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-6">
-                  <span style={{ color: `hsl(${category.accent})` }}>{category.name}</span>
-                  <span>·</span>
-                  <span>{a.read}</span>
-                </div>
-                <h3 className="font-display text-xl font-semibold leading-snug tracking-tight transition-colors flex-1 group-hover:opacity-80">
-                  {a.title}
-                </h3>
-                <p className="mt-4 text-sm text-muted-foreground leading-relaxed">{a.excerpt}</p>
-                <div className="mt-7 pt-6 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{a.date}</span>
-                  <span className="flex items-center gap-1.5"><Icon name="Eye" size={14} /> {a.views}</span>
-                </div>
-              </Link>
-            ))}
+            {rest.map((a) => {
+              const imgKey = `${category.slug}_${a.id}`;
+              return (
+                <Link to={`/article/${category.slug}/${a.id}`} key={a.id} className="group bg-background hover:bg-card transition-colors cursor-pointer flex flex-col overflow-hidden">
+                  {/* Image */}
+                  <div className="aspect-[16/9] relative overflow-hidden" style={{ background: `hsl(${category.accent})` }}>
+                    {images[imgKey] ? (
+                      <img
+                        src={images[imgKey]}
+                        alt={a.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Icon name={category.icon} size={36} style={{ color: `hsl(${category.accentForeground})`, opacity: 0.6 }} />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                  </div>
+                  <div className="p-7 flex flex-col flex-1">
+                    <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-4">
+                      <span style={{ color: `hsl(${category.accent})` }}>{category.name}</span>
+                      <span>·</span>
+                      <span>{a.read}</span>
+                    </div>
+                    <h3 className="font-display text-xl font-semibold leading-snug tracking-tight transition-opacity flex-1 group-hover:opacity-70">
+                      {a.title}
+                    </h3>
+                    <p className="mt-3 text-sm text-muted-foreground leading-relaxed line-clamp-2">{a.excerpt}</p>
+                    <div className="mt-6 pt-5 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{a.date}</span>
+                      <span className="flex items-center gap-1.5"><Icon name="Eye" size={14} /> {a.views}</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

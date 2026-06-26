@@ -1,8 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { categories } from '@/data/categories';
 import { useSeo } from '@/hooks/useSeo';
+import func2url from '../../backend/func2url.json';
+
+const GENERATE_URL = (func2url as Record<string, string>)['generate-article'];
 
 const stats = [
   { label: 'Просмотров за месяц', value: '1.2M', delta: '+18%', icon: 'Eye' },
@@ -13,6 +16,22 @@ const stats = [
 
 const Index = () => {
   const [active, setActive] = useState('Все');
+  const [images, setImages] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    categories.forEach((cat) => {
+      cat.articles.forEach((a) => {
+        fetch(`${GENERATE_URL}?category_slug=${cat.slug}&article_id=${a.id}`)
+          .then((r) => r.ok ? r.json() : null)
+          .then((data) => {
+            if (data?.image_url) {
+              setImages((prev) => ({ ...prev, [`${cat.slug}_${a.id}`]: data.image_url }));
+            }
+          })
+          .catch(() => {});
+      });
+    });
+  }, []);
 
   useSeo({
     title: 'BTWOB — B2B деловой журнал о стратегии, финансах и технологиях',
@@ -189,12 +208,16 @@ const Index = () => {
 
           {/* Featured — first article */}
           {visibleArticles.slice(0, 1).map((a) => (
-            <Link to={`/category/${a.slug}`} key={a.id} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer block">
+            <Link to={`/article/${a.slug}/${a.id}`} key={a.id} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer block">
               <div className="aspect-[4/3] overflow-hidden relative" style={{ background: `hsl(${a.accent})` }}>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.25),transparent_60%)]" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Icon name={a.icon} size={72} style={{ color: 'white', opacity: 0.7 }} />
-                </div>
+                {images[`${a.slug}_${a.id}`] ? (
+                  <img src={images[`${a.slug}_${a.id}`]} alt={a.title} className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Icon name={a.icon} size={72} style={{ color: 'white', opacity: 0.7 }} />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
                 <span className="absolute top-4 left-4 bg-white text-xs font-mono uppercase tracking-wider px-3 py-1" style={{ color: `hsl(${a.accent})` }}>
                   {a.category}
                 </span>
@@ -222,23 +245,38 @@ const Index = () => {
 
           {/* Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-            {visibleArticles.slice(1).map((a) => (
-              <Link to={`/category/${a.slug}`} key={`${a.slug}-${a.id}`} className="group bg-background p-8 hover:bg-card transition-colors cursor-pointer flex flex-col">
-                <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-6">
-                  <span style={{ color: `hsl(${a.accent})` }}>{a.category}</span>
-                  <span>·</span>
-                  <span>{a.read}</span>
-                </div>
-                <h3 className="font-display text-xl font-semibold leading-snug tracking-tight transition-opacity group-hover:opacity-70 flex-1">
-                  {a.title}
-                </h3>
-                <p className="mt-4 text-sm text-muted-foreground leading-relaxed">{a.excerpt}</p>
-                <div className="mt-7 pt-6 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{a.date}</span>
-                  <span className="flex items-center gap-1.5"><Icon name="Eye" size={14} /> {a.views}</span>
-                </div>
-              </Link>
-            ))}
+            {visibleArticles.slice(1).map((a) => {
+              const imgKey = `${a.slug}_${a.id}`;
+              return (
+                <Link to={`/article/${a.slug}/${a.id}`} key={imgKey} className="group bg-background hover:bg-card transition-colors cursor-pointer flex flex-col overflow-hidden">
+                  <div className="aspect-[16/9] relative overflow-hidden" style={{ background: `hsl(${a.accent})` }}>
+                    {images[imgKey] ? (
+                      <img src={images[imgKey]} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Icon name={a.icon} size={36} style={{ color: 'white', opacity: 0.6 }} />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                  </div>
+                  <div className="p-7 flex flex-col flex-1">
+                    <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-4">
+                      <span style={{ color: `hsl(${a.accent})` }}>{a.category}</span>
+                      <span>·</span>
+                      <span>{a.read}</span>
+                    </div>
+                    <h3 className="font-display text-xl font-semibold leading-snug tracking-tight transition-opacity group-hover:opacity-70 flex-1">
+                      {a.title}
+                    </h3>
+                    <p className="mt-3 text-sm text-muted-foreground leading-relaxed line-clamp-2">{a.excerpt}</p>
+                    <div className="mt-6 pt-5 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{a.date}</span>
+                      <span className="flex items-center gap-1.5"><Icon name="Eye" size={14} /> {a.views}</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
           {/* Link to full category */}
