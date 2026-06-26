@@ -42,7 +42,7 @@ const Article = () => {
     ogImage: imageUrl || undefined,
     ogType: 'article',
     keywords: `${article.title}, ${category.name} B2B, деловой журнал, ${category.tagline}`,
-    publishedTime: new Date(article.date.split(' ').reverse().join('-')).toISOString(),
+    publishedTime: article.date,
     jsonLd: [
       {
         '@context': 'https://schema.org',
