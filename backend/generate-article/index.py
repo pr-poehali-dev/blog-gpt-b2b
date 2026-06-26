@@ -25,7 +25,7 @@ def fetch_unsplash_image(query: str, seed: int = 1) -> str:
             req.add_header('Authorization', f'Client-ID {access_key}')
             req.add_header('Accept-Version', 'v1')
             with urllib.request.urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read())
+                data = json.loads(resp.read().decode('utf-8'))
             results = data.get('results', [])
             if results:
                 # берём фото по индексу seed чтобы не повторяться
@@ -92,7 +92,7 @@ def handler(event: dict, context) -> dict:
         row = cur.fetchone()
         conn.close()
 
-        if row and row[1]:  # контент и image_url должны быть
+        if row and row[1] and row[0] and row[0] != {}:  # контент и image_url должны быть непустыми
             return {
                 'statusCode': 200,
                 'headers': {**cors, 'Content-Type': 'application/json'},
@@ -189,7 +189,8 @@ def handler(event: dict, context) -> dict:
     )
 
     with urllib.request.urlopen(req, timeout=60) as resp:
-        result = json.loads(resp.read())
+        raw = resp.read()
+        result = json.loads(raw.decode('utf-8'))
 
     content = json.loads(result['choices'][0]['message']['content'])
     unsplash_query = content.pop('unsplash_query', f"{title} {category}")
