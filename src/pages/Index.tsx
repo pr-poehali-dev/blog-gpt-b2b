@@ -1,56 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { categories } from '@/data/categories';
-
-const articles = [
-  {
-    id: 1,
-    category: 'Стратегия',
-    title: 'Как выстроить B2B-воронку, которая работает на длинном цикле сделки',
-    excerpt: 'Разбираем архитектуру воронки для сложных продаж с несколькими лицами, принимающими решения.',
-    date: '24 июня 2026',
-    read: '8 мин',
-    views: '12.4K',
-    featured: true,
-  },
-  {
-    id: 2,
-    category: 'Технологии',
-    title: 'AI-агенты в корпоративных процессах: что реально внедрять в 2026',
-    excerpt: 'Обзор зрелых сценариев автоматизации без хайпа и обещаний.',
-    date: '23 июня 2026',
-    read: '6 мин',
-    views: '9.1K',
-  },
-  {
-    id: 3,
-    category: 'Финансы',
-    title: 'Unit-экономика SaaS: метрики, которые смотрят инвесторы',
-    excerpt: 'CAC, LTV, payback и почему усреднённые цифры вводят в заблуждение.',
-    date: '22 июня 2026',
-    read: '7 мин',
-    views: '7.8K',
-  },
-  {
-    id: 4,
-    category: 'Маркетинг',
-    title: 'Account-Based Marketing: персонализация на масштабе',
-    excerpt: 'Как работать с ключевыми клиентами точечно, не теряя в эффективности.',
-    date: '21 июня 2026',
-    read: '5 мин',
-    views: '6.2K',
-  },
-  {
-    id: 5,
-    category: 'Управление',
-    title: 'OKR в распределённых командах: типичные ошибки внедрения',
-    excerpt: 'Почему цели не достигаются и как выстроить прозрачную систему.',
-    date: '20 июня 2026',
-    read: '9 мин',
-    views: '5.5K',
-  },
-];
 
 const stats = [
   { label: 'Просмотров за месяц', value: '1.2M', delta: '+18%', icon: 'Eye' },
@@ -61,6 +12,23 @@ const stats = [
 
 const Index = () => {
   const [active, setActive] = useState('Все');
+
+  const activeCategory = useMemo(
+    () => categories.find((c) => c.name === active) ?? null,
+    [active],
+  );
+
+  const visibleArticles = useMemo(() => {
+    if (active === 'Все') {
+      return categories.flatMap((c) =>
+        c.articles.map((a) => ({ ...a, category: c.name, accent: c.accent, slug: c.slug, icon: c.icon })),
+      ).slice(0, 6);
+    }
+    const cat = categories.find((c) => c.name === active);
+    return (cat?.articles ?? []).map((a) => ({
+      ...a, category: active, accent: cat!.accent, slug: cat!.slug, icon: cat!.icon,
+    }));
+  }, [active]);
 
   return (
     <div className="min-h-screen bg-background grain text-foreground">
@@ -168,64 +136,70 @@ const Index = () => {
 
           {/* Filters */}
           <div className="flex flex-wrap gap-2 mb-12">
-            {['Все', ...categories.map((c) => c.name)].map((f) => (
-              <button
-                key={f}
-                onClick={() => setActive(f)}
-                className={`px-4 py-2 text-sm font-medium border transition-colors ${
-                  active === f
-                    ? 'bg-foreground text-background border-foreground'
-                    : 'border-border hover:border-foreground'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+            {['Все', ...categories.map((c) => c.name)].map((f) => {
+              const cat = categories.find((c) => c.name === f);
+              const isActive = active === f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setActive(f)}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border transition-all duration-200 ${
+                    isActive
+                      ? 'text-background border-transparent'
+                      : 'border-border hover:border-foreground'
+                  }`}
+                  style={isActive && cat ? { background: `hsl(${cat.accent})`, borderColor: `hsl(${cat.accent})` } : isActive ? { background: 'hsl(var(--foreground))' } : {}}
+                >
+                  {cat && <Icon name={cat.icon} size={14} style={isActive ? { color: `hsl(${cat.accentForeground})` } : { color: `hsl(${cat.accent})` }} />}
+                  {f}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Featured */}
-          {articles.filter((a) => a.featured).map((a) => (
-            <article key={a.id} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer">
-              <div className="aspect-[4/3] bg-foreground overflow-hidden relative">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,hsl(222_80%_42%/0.5),transparent_60%)]" />
+          {/* Featured — first article */}
+          {visibleArticles.slice(0, 1).map((a) => (
+            <Link to={`/category/${a.slug}`} key={a.id} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer block">
+              <div className="aspect-[4/3] overflow-hidden relative" style={{ background: `hsl(${a.accent})` }}>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.25),transparent_60%)]" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Icon name="TrendingUp" size={64} className="text-background/25" />
+                  <Icon name={a.icon} size={72} style={{ color: 'white', opacity: 0.7 }} />
                 </div>
-                <span className="absolute top-4 left-4 bg-accent text-accent-foreground text-xs font-mono uppercase tracking-wider px-3 py-1">
-                  Главное
+                <span className="absolute top-4 left-4 bg-white text-xs font-mono uppercase tracking-wider px-3 py-1" style={{ color: `hsl(${a.accent})` }}>
+                  {a.category}
                 </span>
               </div>
               <div className="flex flex-col justify-center">
                 <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-5">
-                  <span className="text-accent">{a.category}</span>
+                  <span style={{ color: `hsl(${a.accent})` }}>{a.category}</span>
                   <span>·</span>
                   <span>{a.date}</span>
                 </div>
-                <h3 className="font-display text-3xl md:text-4xl font-semibold leading-tight tracking-tight group-hover:text-accent transition-colors text-balance">
+                <h3 className="font-display text-3xl md:text-4xl font-semibold leading-tight tracking-tight transition-opacity group-hover:opacity-75 text-balance">
                   {a.title}
                 </h3>
                 <p className="mt-5 text-muted-foreground leading-relaxed">{a.excerpt}</p>
                 <div className="mt-8 flex items-center gap-6 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5"><Icon name="Clock" size={15} /> {a.read}</span>
                   <span className="flex items-center gap-1.5"><Icon name="Eye" size={15} /> {a.views}</span>
-                  <span className="ml-auto flex items-center gap-1.5 font-medium text-foreground underline-grow">
+                  <span className="ml-auto flex items-center gap-1.5 font-medium" style={{ color: `hsl(${a.accent})` }}>
                     Читать <Icon name="ArrowRight" size={15} />
                   </span>
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
 
           {/* Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-            {articles.filter((a) => !a.featured).map((a) => (
-              <article key={a.id} className="group bg-background p-8 hover:bg-card transition-colors cursor-pointer flex flex-col">
+            {visibleArticles.slice(1).map((a) => (
+              <Link to={`/category/${a.slug}`} key={`${a.slug}-${a.id}`} className="group bg-background p-8 hover:bg-card transition-colors cursor-pointer flex flex-col">
                 <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-6">
-                  <span className="text-accent">{a.category}</span>
+                  <span style={{ color: `hsl(${a.accent})` }}>{a.category}</span>
                   <span>·</span>
                   <span>{a.read}</span>
                 </div>
-                <h3 className="font-display text-xl font-semibold leading-snug tracking-tight group-hover:text-accent transition-colors flex-1">
+                <h3 className="font-display text-xl font-semibold leading-snug tracking-tight transition-opacity group-hover:opacity-70 flex-1">
                   {a.title}
                 </h3>
                 <p className="mt-4 text-sm text-muted-foreground leading-relaxed">{a.excerpt}</p>
@@ -233,9 +207,23 @@ const Index = () => {
                   <span>{a.date}</span>
                   <span className="flex items-center gap-1.5"><Icon name="Eye" size={14} /> {a.views}</span>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
+
+          {/* Link to full category */}
+          {activeCategory && (
+            <div className="mt-10 flex justify-center">
+              <Link
+                to={`/category/${activeCategory.slug}`}
+                className="flex items-center gap-2 px-8 py-3.5 text-sm font-medium text-background transition-opacity hover:opacity-85"
+                style={{ background: `hsl(${activeCategory.accent})` }}
+              >
+                Все статьи: {activeCategory.name}
+                <Icon name="ArrowRight" size={16} />
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
