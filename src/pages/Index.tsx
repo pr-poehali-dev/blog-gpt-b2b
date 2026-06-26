@@ -297,8 +297,6 @@ const Index = () => {
                     <div className="p-7 flex flex-col flex-1">
                       <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-4">
                         <span style={{ color: `hsl(${cat?.accent || '222 80% 42%'})` }}>{a.category_name}</span>
-                        <span>·</span>
-                        <span>{a.read_time}</span>
                       </div>
                       <h3 className="font-display text-xl font-semibold leading-snug tracking-tight transition-opacity group-hover:opacity-70 flex-1">{a.title}</h3>
                       <p className="mt-3 text-sm text-muted-foreground leading-relaxed line-clamp-2">{a.excerpt}</p>
