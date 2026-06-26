@@ -8,15 +8,37 @@ def get_db():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 def fetch_unsplash_image(query: str) -> str:
-    encoded = urllib.parse.quote(query)
-    url = f"https://source.unsplash.com/1200x630/?{encoded},business"
-    req = urllib.request.Request(url, method='HEAD')
-    req.add_header('User-Agent', 'Mozilla/5.0')
+    """Ищет фото через официальный Unsplash API, берёт первый результат в размере 1280px."""
+    access_key = os.environ.get('UNSPLASH_ACCESS_KEY', '').strip()
+
+    if access_key:
+        try:
+            encoded = urllib.parse.quote(query)
+            url = f"https://api.unsplash.com/search/photos?query={encoded}&per_page=1&orientation=landscape&content_filter=high"
+            req = urllib.request.Request(url)
+            req.add_header('Authorization', f'Client-ID {access_key}')
+            req.add_header('Accept-Version', 'v1')
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read())
+            results = data.get('results', [])
+            if results:
+                img_url = results[0]['urls'].get('regular', results[0]['urls']['full'])
+                return img_url
+        except BaseException:
+            pass
+
+    # Fallback: source.unsplash.com (без ключа, менее стабильный)
     try:
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        encoded = urllib.parse.quote(query)
+        url = f"https://source.unsplash.com/featured/1280x720/?{encoded}"
+        req = urllib.request.Request(url)
+        req.add_header('User-Agent', 'Mozilla/5.0')
+        with urllib.request.urlopen(req, timeout=10) as resp:
             return resp.geturl()
     except BaseException:
-        return "https://source.unsplash.com/1200x630/?business,office"
+        pass
+
+    return f"https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=1280&q=80"
 
 def handler(event: dict, context) -> dict:
     """
