@@ -257,7 +257,6 @@ const Index = () => {
                   </h3>
                   <p className="mt-5 text-muted-foreground leading-relaxed">{featured.excerpt}</p>
                   <div className="mt-8 flex items-center gap-6 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><Icon name="Clock" size={15} /> {featured.read_time}</span>
                     <span className="flex items-center gap-1.5"><Icon name="Eye" size={15} /> {featured.views}</span>
                     <span className="ml-auto flex items-center gap-1.5 font-medium" style={{ color: `hsl(${cat?.accent || '222 80% 42%'})` }}>
                       Читать <Icon name="ArrowRight" size={15} />
