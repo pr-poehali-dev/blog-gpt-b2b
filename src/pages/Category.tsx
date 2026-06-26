@@ -159,6 +159,9 @@ const Category = () => {
                   src={images[`${category.slug}_${featured.id}`]}
                   alt={featured.title}
                   className="absolute inset-0 w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -203,6 +206,8 @@ const Category = () => {
                         src={images[imgKey]}
                         alt={a.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">

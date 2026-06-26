@@ -177,6 +177,9 @@ const Article = () => {
               src={imageUrl}
               alt={article.title}
               className="w-full h-full object-cover"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center" style={{ background: `hsl(${category.accent})` }}>

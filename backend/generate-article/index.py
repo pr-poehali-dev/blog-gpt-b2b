@@ -26,9 +26,11 @@ def fetch_unsplash_image(query: str, seed: int = 1) -> str:
             results = data.get('results', [])
             if results:
                 idx = seed % len(results)
-                img_url = results[idx]['urls'].get('regular', results[idx]['urls']['full'])
-                sep = '&' if '?' in img_url else '?'
-                return f"{img_url}{sep}w=1280&q=85&fit=crop"
+                # Берём базовый URL без параметров Unsplash (ixid, ixlib и пр.)
+                raw_url = results[idx]['urls'].get('raw', results[idx]['urls']['full'])
+                raw_base = raw_url.split('?')[0]
+                # auto=format → WebP/AVIF для современных браузеров, q=75 оптимальный баланс
+                return f"{raw_base}?w=1200&h=630&fit=crop&crop=entropy&auto=format&q=75"
         except BaseException:
             pass
 
@@ -50,7 +52,7 @@ def fetch_unsplash_image(query: str, seed: int = 1) -> str:
         "photo-1551434678-e076c223a692",
         "photo-1460925895917-afdab827c52f",
     ]
-    return f"https://images.unsplash.com/{fallbacks[seed % len(fallbacks)]}?w=1280&q=85"
+    return f"https://images.unsplash.com/{fallbacks[seed % len(fallbacks)]}?w=1200&h=630&fit=crop&auto=format&q=75"
 
 def is_valid_content(content) -> bool:
     """Проверяет что контент реально сгенерирован, а не пустой объект."""

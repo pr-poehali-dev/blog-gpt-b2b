@@ -211,7 +211,7 @@ const Index = () => {
             <Link to={`/article/${a.slug}/${a.id}`} key={a.id} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer block">
               <div className="aspect-[4/3] overflow-hidden relative" style={{ background: `hsl(${a.accent})` }}>
                 {images[`${a.slug}_${a.id}`] ? (
-                  <img src={images[`${a.slug}_${a.id}`]} alt={a.title} className="absolute inset-0 w-full h-full object-cover" />
+                  <img src={images[`${a.slug}_${a.id}`]} alt={a.title} className="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchPriority="high" />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Icon name={a.icon} size={72} style={{ color: 'white', opacity: 0.7 }} />
@@ -251,7 +251,7 @@ const Index = () => {
                 <Link to={`/article/${a.slug}/${a.id}`} key={imgKey} className="group bg-background hover:bg-card transition-colors cursor-pointer flex flex-col overflow-hidden">
                   <div className="aspect-[16/9] relative overflow-hidden" style={{ background: `hsl(${a.accent})` }}>
                     {images[imgKey] ? (
-                      <img src={images[imgKey]} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={images[imgKey]} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" decoding="async" />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Icon name={a.icon} size={36} style={{ color: 'white', opacity: 0.6 }} />
