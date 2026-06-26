@@ -224,8 +224,6 @@ const Category = () => {
                   <div className="p-7 flex flex-col flex-1">
                     <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-4">
                       <span style={{ color: `hsl(${category.accent})` }}>{category.name}</span>
-                      <span>·</span>
-                      <span>{a.read_time}</span>
                     </div>
                     <h3 className="font-display text-xl font-semibold leading-snug tracking-tight transition-opacity flex-1 group-hover:opacity-70">
                       {a.title}
