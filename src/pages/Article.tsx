@@ -316,7 +316,7 @@ const Article = () => {
                   </div>
                 )}
                 <div className="mt-12 pt-8 border-t border-border flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">Материал создан при поддержке iHUNT</span>
+                  <span className="text-xs text-muted-foreground">Материал создан при поддержке <a href="https://i-hunt.ru/" target="_blank" rel="noopener noreferrer" className="font-medium underline-grow hover:opacity-70 transition-opacity" style={{ color: `hsl(${category.accent})` }}>iHUNT</a></span>
                 </div>
               </article>
             )}
