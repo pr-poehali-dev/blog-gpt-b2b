@@ -194,10 +194,25 @@ def handler(event: dict, context) -> dict:
 
     with urllib.request.urlopen(req, timeout=55) as resp:
         raw = resp.read()
-        result = json.loads(raw.decode('utf-8'))
+        # Декодируем с заменой — потом вычистим replacement chars
+        result = json.loads(raw.decode('utf-8', errors='replace'))
 
     content_str = result['choices'][0]['message']['content']
+    # Убираем U+FFFD (replacement character = знак вопроса в ромбике)
+    content_str = content_str.replace('\ufffd', '')
     content = json.loads(content_str)
+
+    # Рекурсивно чистим все строки в контенте
+    def clean(obj):
+        if isinstance(obj, str):
+            return obj.replace('\ufffd', '').replace('\x00', '')
+        if isinstance(obj, list):
+            return [clean(i) for i in obj]
+        if isinstance(obj, dict):
+            return {k: clean(v) for k, v in obj.items()}
+        return obj
+
+    content = clean(content)
 
     if not is_valid_content(content):
         return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'Invalid content from GPT'})}
