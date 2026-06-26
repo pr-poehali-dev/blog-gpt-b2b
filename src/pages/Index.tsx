@@ -1,11 +1,29 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { categories } from '@/data/categories';
 import { useSeo } from '@/hooks/useSeo';
 import func2url from '../../backend/func2url.json';
 
-const GENERATE_URL = (func2url as Record<string, string>)['generate-article'];
+const ARTICLES_API = (func2url as Record<string, string>)['articles-api'];
+
+interface DbArticle {
+  article_key: string;
+  category_slug: string;
+  category_name: string;
+  title: string;
+  excerpt: string;
+  image_url: string | null;
+  read_time: string;
+  views: number;
+  published_at: string;
+}
+
+const formatDate = (iso: string) => {
+  try {
+    return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch { return iso; }
+};
 
 const stats = [
   { label: 'Просмотров за месяц', value: '1.2M', delta: '+18%', icon: 'Eye' },
@@ -16,22 +34,22 @@ const stats = [
 
 const Index = () => {
   const [active, setActive] = useState('Все');
-  const [images, setImages] = useState<Record<string, string>>({});
+  const [allArticles, setAllArticles] = useState<DbArticle[]>([]);
+  const [loadingArticles, setLoadingArticles] = useState(true);
 
   useEffect(() => {
-    categories.forEach((cat) => {
-      cat.articles.forEach((a) => {
-        fetch(`${GENERATE_URL}?category_slug=${cat.slug}&article_id=${a.id}`)
-          .then((r) => r.ok ? r.json() : null)
-          .then((data) => {
-            if (data?.image_url) {
-              setImages((prev) => ({ ...prev, [`${cat.slug}_${a.id}`]: data.image_url }));
-            }
-          })
-          .catch(() => {});
-      });
-    });
-  }, []);
+    // Загружаем статьи из БД — все категории или конкретная
+    const url = active === 'Все'
+      ? ARTICLES_API
+      : `${ARTICLES_API}?category_slug=${categories.find(c => c.name === active)?.slug || ''}`;
+
+    setLoadingArticles(true);
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => setAllArticles(data.articles || []))
+      .catch(() => setAllArticles([]))
+      .finally(() => setLoadingArticles(false));
+  }, [active]);
 
   useSeo({
     title: 'BTWOB — B2B деловой журнал о стратегии, финансах и технологиях',
@@ -62,22 +80,9 @@ const Index = () => {
     ],
   });
 
-  const activeCategory = useMemo(
-    () => categories.find((c) => c.name === active) ?? null,
-    [active],
-  );
-
-  const visibleArticles = useMemo(() => {
-    if (active === 'Все') {
-      return categories.flatMap((c) =>
-        c.articles.map((a) => ({ ...a, category: c.name, accent: c.accent, slug: c.slug, icon: c.icon })),
-      ).slice(0, 6);
-    }
-    const cat = categories.find((c) => c.name === active);
-    return (cat?.articles ?? []).map((a) => ({
-      ...a, category: active, accent: cat!.accent, slug: cat!.slug, icon: cat!.icon,
-    }));
-  }, [active]);
+  const activeCategory = categories.find((c) => c.name === active) ?? null;
+  const featured = allArticles[0] ?? null;
+  const rest = allArticles.slice(1, 6);
 
   return (
     <div className="min-h-screen bg-background grain text-foreground">
@@ -206,78 +211,99 @@ const Index = () => {
             })}
           </div>
 
-          {/* Featured — first article */}
-          {visibleArticles.slice(0, 1).map((a) => (
-            <Link to={`/article/${a.slug}/${a.id}`} key={a.id} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer block">
-              <div className="aspect-[4/3] overflow-hidden relative" style={{ background: `hsl(${a.accent})` }}>
-                {images[`${a.slug}_${a.id}`] ? (
-                  <img src={images[`${a.slug}_${a.id}`]} alt={a.title} className="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchPriority="high" />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Icon name={a.icon} size={72} style={{ color: 'white', opacity: 0.7 }} />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
-                <span className="absolute top-4 left-4 bg-white text-xs font-mono uppercase tracking-wider px-3 py-1" style={{ color: `hsl(${a.accent})` }}>
-                  {a.category}
-                </span>
-              </div>
-              <div className="flex flex-col justify-center">
-                <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-5">
-                  <span style={{ color: `hsl(${a.accent})` }}>{a.category}</span>
-                  <span>·</span>
-                  <span>{a.date}</span>
-                </div>
-                <h3 className="font-display text-3xl md:text-4xl font-semibold leading-tight tracking-tight transition-opacity group-hover:opacity-75 text-balance">
-                  {a.title}
-                </h3>
-                <p className="mt-5 text-muted-foreground leading-relaxed">{a.excerpt}</p>
-                <div className="mt-8 flex items-center gap-6 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5"><Icon name="Clock" size={15} /> {a.read}</span>
-                  <span className="flex items-center gap-1.5"><Icon name="Eye" size={15} /> {a.views}</span>
-                  <span className="ml-auto flex items-center gap-1.5 font-medium" style={{ color: `hsl(${a.accent})` }}>
-                    Читать <Icon name="ArrowRight" size={15} />
+          {/* Loading */}
+          {loadingArticles && (
+            <div className="flex items-center gap-3 py-16 text-muted-foreground">
+              <div className="w-5 h-5 border-2 border-transparent rounded-full animate-spin" style={{ borderTopColor: 'hsl(var(--accent))' }} />
+              Загрузка статей...
+            </div>
+          )}
+
+          {/* Empty */}
+          {!loadingArticles && allArticles.length === 0 && (
+            <div className="py-16 text-center border border-dashed border-border">
+              <p className="text-muted-foreground">Статьи ещё не опубликованы</p>
+              <Link to="/admin/generate" className="mt-3 inline-flex items-center gap-2 text-sm font-medium underline-grow">
+                Запустить генерацию <Icon name="ArrowRight" size={14} />
+              </Link>
+            </div>
+          )}
+
+          {/* Featured */}
+          {!loadingArticles && featured && (() => {
+            const cat = categories.find(c => c.slug === featured.category_slug);
+            return (
+              <Link to={`/article/${featured.category_slug}/${featured.article_key}`} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer block">
+                <div className="aspect-[4/3] overflow-hidden relative" style={{ background: `hsl(${cat?.accent || '222 80% 42%'})` }}>
+                  {featured.image_url ? (
+                    <img src={featured.image_url} alt={featured.title} className="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchPriority="high" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Icon name={cat?.icon || 'FileText'} size={72} style={{ color: 'white', opacity: 0.6 }} />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
+                  <span className="absolute top-4 left-4 bg-white text-xs font-mono uppercase tracking-wider px-3 py-1" style={{ color: `hsl(${cat?.accent || '222 80% 42%'})` }}>
+                    {featured.category_name}
                   </span>
                 </div>
-              </div>
-            </Link>
-          ))}
+                <div className="flex flex-col justify-center">
+                  <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-5">
+                    <span style={{ color: `hsl(${cat?.accent || '222 80% 42%'})` }}>{featured.category_name}</span>
+                    <span>·</span>
+                    <span>{formatDate(featured.published_at)}</span>
+                  </div>
+                  <h3 className="font-display text-3xl md:text-4xl font-semibold leading-tight tracking-tight transition-opacity group-hover:opacity-75 text-balance">
+                    {featured.title}
+                  </h3>
+                  <p className="mt-5 text-muted-foreground leading-relaxed">{featured.excerpt}</p>
+                  <div className="mt-8 flex items-center gap-6 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1.5"><Icon name="Clock" size={15} /> {featured.read_time}</span>
+                    <span className="flex items-center gap-1.5"><Icon name="Eye" size={15} /> {featured.views}</span>
+                    <span className="ml-auto flex items-center gap-1.5 font-medium" style={{ color: `hsl(${cat?.accent || '222 80% 42%'})` }}>
+                      Читать <Icon name="ArrowRight" size={15} />
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })()}
 
           {/* Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-            {visibleArticles.slice(1).map((a) => {
-              const imgKey = `${a.slug}_${a.id}`;
-              return (
-                <Link to={`/article/${a.slug}/${a.id}`} key={imgKey} className="group bg-background hover:bg-card transition-colors cursor-pointer flex flex-col overflow-hidden">
-                  <div className="aspect-[16/9] relative overflow-hidden" style={{ background: `hsl(${a.accent})` }}>
-                    {images[imgKey] ? (
-                      <img src={images[imgKey]} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" decoding="async" />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Icon name={a.icon} size={36} style={{ color: 'white', opacity: 0.6 }} />
+          {!loadingArticles && rest.length > 0 && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
+              {rest.map((a) => {
+                const cat = categories.find(c => c.slug === a.category_slug);
+                return (
+                  <Link to={`/article/${a.category_slug}/${a.article_key}`} key={a.article_key} className="group bg-background hover:bg-card transition-colors cursor-pointer flex flex-col overflow-hidden">
+                    <div className="aspect-[16/9] relative overflow-hidden" style={{ background: `hsl(${cat?.accent || '222 80% 42%'})` }}>
+                      {a.image_url ? (
+                        <img src={a.image_url} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" decoding="async" />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Icon name={cat?.icon || 'FileText'} size={36} style={{ color: 'white', opacity: 0.6 }} />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                    </div>
+                    <div className="p-7 flex flex-col flex-1">
+                      <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-4">
+                        <span style={{ color: `hsl(${cat?.accent || '222 80% 42%'})` }}>{a.category_name}</span>
+                        <span>·</span>
+                        <span>{a.read_time}</span>
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                  </div>
-                  <div className="p-7 flex flex-col flex-1">
-                    <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-4">
-                      <span style={{ color: `hsl(${a.accent})` }}>{a.category}</span>
-                      <span>·</span>
-                      <span>{a.read}</span>
+                      <h3 className="font-display text-xl font-semibold leading-snug tracking-tight transition-opacity group-hover:opacity-70 flex-1">{a.title}</h3>
+                      <p className="mt-3 text-sm text-muted-foreground leading-relaxed line-clamp-2">{a.excerpt}</p>
+                      <div className="mt-6 pt-5 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{formatDate(a.published_at)}</span>
+                        <span className="flex items-center gap-1.5"><Icon name="Eye" size={14} /> {a.views}</span>
+                      </div>
                     </div>
-                    <h3 className="font-display text-xl font-semibold leading-snug tracking-tight transition-opacity group-hover:opacity-70 flex-1">
-                      {a.title}
-                    </h3>
-                    <p className="mt-3 text-sm text-muted-foreground leading-relaxed line-clamp-2">{a.excerpt}</p>
-                    <div className="mt-6 pt-5 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{a.date}</span>
-                      <span className="flex items-center gap-1.5"><Icon name="Eye" size={14} /> {a.views}</span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           {/* Link to full category */}
           {activeCategory && (
