@@ -5,7 +5,22 @@ import { getCategory, categories } from '@/data/categories';
 import { useSeo } from '@/hooks/useSeo';
 import func2url from '../../backend/func2url.json';
 
-const GENERATE_URL = (func2url as Record<string, string>)['generate-article'];
+const ARTICLES_API = (func2url as Record<string, string>)['articles-api'];
+
+interface DbArticle {
+  article_key: string;
+  title: string;
+  excerpt: string;
+  image_url: string | null;
+  read_time: string;
+  views: number;
+  published_at: string;
+}
+
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+};
 
 const CategorySeo = ({ slug }: { slug: string }) => {
   const category = getCategory(slug);
@@ -40,20 +55,17 @@ const CategorySeo = ({ slug }: { slug: string }) => {
 const Category = () => {
   const { slug } = useParams();
   const category = getCategory(slug || '');
-  const [images, setImages] = useState<Record<string, string>>({});
+  const [articles, setArticles] = useState<DbArticle[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!category) return;
-    category.articles.forEach((a) => {
-      fetch(`${GENERATE_URL}?category_slug=${category.slug}&article_id=${a.id}`)
-        .then((r) => r.ok ? r.json() : null)
-        .then((data) => {
-          if (data?.image_url) {
-            setImages((prev) => ({ ...prev, [`${category.slug}_${a.id}`]: data.image_url }));
-          }
-        })
-        .catch(() => {});
-    });
+    if (!slug) return;
+    setLoading(true);
+    fetch(`${ARTICLES_API}?category_slug=${slug}`)
+      .then((r) => r.json())
+      .then((data) => setArticles(data.articles || []))
+      .catch(() => setArticles([]))
+      .finally(() => setLoading(false));
   }, [slug]);
 
   if (!category) {
@@ -65,17 +77,14 @@ const Category = () => {
     );
   }
 
-  const accentStyle = {
-    '--accent': category.accent,
-    '--accent-foreground': category.accentForeground,
-  } as React.CSSProperties;
-
-  const featured = category.articles[0];
-  const rest = category.articles.slice(1);
+  const accentStyle = { '--accent': category.accent, '--accent-foreground': category.accentForeground } as React.CSSProperties;
+  const featured = articles[0];
+  const rest = articles.slice(1);
 
   return (
     <div className="min-h-screen bg-background grain text-foreground" style={accentStyle}>
       <CategorySeo slug={category.slug} />
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
         <div className="container flex items-center justify-between h-16">
@@ -124,21 +133,18 @@ const Category = () => {
                 {category.description}
               </p>
               <div className="reveal mt-8 flex items-center gap-6 text-sm font-mono text-muted-foreground" style={{ animationDelay: '0.2s' }}>
-                <span className="flex items-center gap-2"><Icon name="FileText" size={15} /> {category.count} материалов</span>
+                <span className="flex items-center gap-2"><Icon name="FileText" size={15} /> {articles.length} материалов</span>
                 <span className="flex items-center gap-2"><Icon name="Sparkles" size={15} /> Обновляется ежедневно</span>
               </div>
             </div>
-            <div
-              className="reveal aspect-square relative overflow-hidden hidden lg:block"
-              style={{ animationDelay: '0.15s', background: `hsl(${category.accent})` }}
-            >
+            <div className="reveal aspect-square relative overflow-hidden hidden lg:block" style={{ animationDelay: '0.15s', background: `hsl(${category.accent})` }}>
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.25),transparent_55%)]" />
               <div className="absolute inset-0 grain opacity-40" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <Icon name={category.icon} size={120} style={{ color: `hsl(${category.accentForeground})`, opacity: 0.9 }} />
               </div>
               <span className="absolute bottom-6 left-6 font-display text-6xl font-bold" style={{ color: `hsl(${category.accentForeground})`, opacity: 0.85 }}>
-                {String(category.count).padStart(2, '0')}
+                {String(articles.length).padStart(2, '0')}
               </span>
             </div>
           </div>
@@ -151,64 +157,63 @@ const Category = () => {
           <div className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground mb-3">Публикации · {category.name}</div>
           <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight mb-12">Свежие статьи</h2>
 
-          {/* Featured */}
-          <Link to={`/article/${category.slug}/${featured.id}`} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer block">
-            <div className="aspect-[4/3] overflow-hidden relative" style={{ background: `hsl(${category.accent})` }}>
-              {images[`${category.slug}_${featured.id}`] ? (
-                <img
-                  src={images[`${category.slug}_${featured.id}`]}
-                  alt={featured.title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  loading="eager"
-                  decoding="async"
-                  fetchPriority="high"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Icon name={category.icon} size={72} style={{ color: `hsl(${category.accentForeground})`, opacity: 0.85 }} />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-              <span className="absolute top-4 left-4 text-xs font-mono uppercase tracking-wider px-3 py-1" style={{ background: `hsl(${category.accentForeground})`, color: `hsl(${category.accent})` }}>
-                Главное
-              </span>
+          {loading && (
+            <div className="flex items-center gap-3 py-16 text-muted-foreground">
+              <div className="w-5 h-5 border-2 border-transparent rounded-full animate-spin" style={{ borderTopColor: `hsl(${category.accent})` }} />
+              Загрузка статей...
             </div>
-            <div className="flex flex-col justify-center">
-              <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-5">
-                <span style={{ color: `hsl(${category.accent})` }}>{category.name}</span>
-                <span>·</span>
-                <span>{featured.date}</span>
-              </div>
-              <h3 className="font-display text-3xl md:text-4xl font-semibold leading-tight tracking-tight transition-colors text-balance group-hover:opacity-80">
-                {featured.title}
-              </h3>
-              <p className="mt-5 text-muted-foreground leading-relaxed">{featured.excerpt}</p>
-              <div className="mt-8 flex items-center gap-6 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5"><Icon name="Clock" size={15} /> {featured.read}</span>
-                <span className="flex items-center gap-1.5"><Icon name="Eye" size={15} /> {featured.views}</span>
-                <span className="ml-auto flex items-center gap-1.5 font-medium" style={{ color: `hsl(${category.accent})` }}>
-                  Читать <Icon name="ArrowRight" size={15} />
+          )}
+
+          {!loading && articles.length === 0 && (
+            <div className="py-16 text-center border border-dashed border-border">
+              <p className="text-muted-foreground mb-2">Статьи ещё не опубликованы</p>
+              <p className="text-sm text-muted-foreground">Первые материалы появятся после запуска генерации</p>
+            </div>
+          )}
+
+          {!loading && featured && (
+            <Link to={`/article/${category.slug}/${featured.article_key}`} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer block">
+              <div className="aspect-[4/3] overflow-hidden relative" style={{ background: `hsl(${category.accent})` }}>
+                {featured.image_url ? (
+                  <img src={featured.image_url} alt={featured.title} className="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchPriority="high" />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Icon name={category.icon} size={72} style={{ color: `hsl(${category.accentForeground})`, opacity: 0.85 }} />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                <span className="absolute top-4 left-4 text-xs font-mono uppercase tracking-wider px-3 py-1" style={{ background: `hsl(${category.accentForeground})`, color: `hsl(${category.accent})` }}>
+                  Главное
                 </span>
               </div>
-            </div>
-          </Link>
+              <div className="flex flex-col justify-center">
+                <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-5">
+                  <span style={{ color: `hsl(${category.accent})` }}>{category.name}</span>
+                  <span>·</span>
+                  <span>{formatDate(featured.published_at)}</span>
+                </div>
+                <h3 className="font-display text-3xl md:text-4xl font-semibold leading-tight tracking-tight transition-colors text-balance group-hover:opacity-80">
+                  {featured.title}
+                </h3>
+                <p className="mt-5 text-muted-foreground leading-relaxed">{featured.excerpt}</p>
+                <div className="mt-8 flex items-center gap-6 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5"><Icon name="Clock" size={15} /> {featured.read_time}</span>
+                  <span className="flex items-center gap-1.5"><Icon name="Eye" size={15} /> {featured.views}</span>
+                  <span className="ml-auto flex items-center gap-1.5 font-medium" style={{ color: `hsl(${category.accent})` }}>
+                    Читать <Icon name="ArrowRight" size={15} />
+                  </span>
+                </div>
+              </div>
+            </Link>
+          )}
 
-          {/* Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-            {rest.map((a) => {
-              const imgKey = `${category.slug}_${a.id}`;
-              return (
-                <Link to={`/article/${category.slug}/${a.id}`} key={a.id} className="group bg-background hover:bg-card transition-colors cursor-pointer flex flex-col overflow-hidden">
-                  {/* Image */}
+          {!loading && rest.length > 0 && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
+              {rest.map((a) => (
+                <Link to={`/article/${category.slug}/${a.article_key}`} key={a.article_key} className="group bg-background hover:bg-card transition-colors cursor-pointer flex flex-col overflow-hidden">
                   <div className="aspect-[16/9] relative overflow-hidden" style={{ background: `hsl(${category.accent})` }}>
-                    {images[imgKey] ? (
-                      <img
-                        src={images[imgKey]}
-                        alt={a.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                        decoding="async"
-                      />
+                    {a.image_url ? (
+                      <img src={a.image_url} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" decoding="async" />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Icon name={category.icon} size={36} style={{ color: `hsl(${category.accentForeground})`, opacity: 0.6 }} />
@@ -220,21 +225,21 @@ const Category = () => {
                     <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-4">
                       <span style={{ color: `hsl(${category.accent})` }}>{category.name}</span>
                       <span>·</span>
-                      <span>{a.read}</span>
+                      <span>{a.read_time}</span>
                     </div>
                     <h3 className="font-display text-xl font-semibold leading-snug tracking-tight transition-opacity flex-1 group-hover:opacity-70">
                       {a.title}
                     </h3>
                     <p className="mt-3 text-sm text-muted-foreground leading-relaxed line-clamp-2">{a.excerpt}</p>
                     <div className="mt-6 pt-5 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{a.date}</span>
+                      <span>{formatDate(a.published_at)}</span>
                       <span className="flex items-center gap-1.5"><Icon name="Eye" size={14} /> {a.views}</span>
                     </div>
                   </div>
                 </Link>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -244,14 +249,9 @@ const Category = () => {
           <div className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground mb-8">Другие направления</div>
           <div className="flex flex-wrap gap-3">
             {categories.filter((c) => c.slug !== category.slug).map((c) => (
-              <Link
-                key={c.slug}
-                to={`/category/${c.slug}`}
-                className="group flex items-center gap-2.5 border border-border px-5 py-3 hover:border-foreground transition-colors"
-              >
+              <Link key={c.slug} to={`/category/${c.slug}`} className="group flex items-center gap-2.5 border border-border px-5 py-3 hover:border-foreground transition-colors">
                 <Icon name={c.icon} size={17} style={{ color: `hsl(${c.accent})` }} />
                 <span className="font-display text-base font-medium">{c.name}</span>
-                <span className="font-mono text-xs text-muted-foreground">{c.count}</span>
                 <Icon name="ArrowUpRight" size={15} className="opacity-0 group-hover:opacity-100 transition-opacity" />
               </Link>
             ))}

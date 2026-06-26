@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "Get all articles",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {"articles": []},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

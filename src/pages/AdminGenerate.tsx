@@ -4,6 +4,8 @@ import Icon from '@/components/ui/icon';
 import { categories } from '@/data/categories';
 import func2url from '../../backend/func2url.json';
 
+const SCHEDULER_URL = (func2url as Record<string, string>)['scheduler'];
+
 type JobStatus = 'pending' | 'running' | 'done' | 'error' | 'cached';
 
 interface Job {
@@ -41,6 +43,23 @@ const AdminGenerate = () => {
   const [jobs, setJobs] = useState<Job[]>(buildJobs);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
+  const [schedulerRunning, setSchedulerRunning] = useState(false);
+  const [schedulerResult, setSchedulerResult] = useState<string>('');
+
+  const runScheduler = async () => {
+    setSchedulerRunning(true);
+    setSchedulerResult('');
+    try {
+      const res = await fetch(SCHEDULER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const data = await res.json();
+      const total = (data.results || []).reduce((sum: number, r: { published?: {title: string}[] }) => sum + (r.published?.length || 0), 0);
+      setSchedulerResult(`✓ Опубликовано ${total} новых статей`);
+    } catch {
+      setSchedulerResult('✗ Ошибка запуска планировщика');
+    } finally {
+      setSchedulerRunning(false);
+    }
+  };
 
   const update = (key: string, patch: Partial<Job>) =>
     setJobs((prev) => prev.map((j) => (j.key === key ? { ...j, ...patch } : j)));
@@ -157,6 +176,35 @@ const AdminGenerate = () => {
             GPT-4o сгенерирует {jobs.length} статей по всем категориям с тематическими фото из Unsplash.
             Уже сохранённые статьи будут пропущены.
           </p>
+        </div>
+
+        {/* Scheduler block */}
+        <div className="mb-10 border border-border p-7">
+          <div className="flex items-start justify-between gap-6">
+            <div>
+              <div className="font-display text-xl font-semibold mb-2 flex items-center gap-2">
+                <Icon name="CalendarClock" size={20} style={{ color: 'hsl(222 80% 42%)' }} />
+                Автопубликация по расписанию
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Генерирует 3 новые уникальные статьи в каждой категории (18 статей за запуск). GPT сам придумывает темы, которых ещё не было.
+              </p>
+              {schedulerResult && (
+                <p className={`mt-3 text-sm font-medium ${schedulerResult.startsWith('✓') ? 'text-green-600' : 'text-destructive'}`}>
+                  {schedulerResult}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={runScheduler}
+              disabled={schedulerRunning}
+              className="shrink-0 flex items-center gap-2 px-6 py-3 text-sm font-medium text-background bg-foreground hover:opacity-85 transition-opacity disabled:opacity-50 whitespace-nowrap"
+            >
+              {schedulerRunning
+                ? <><div className="w-4 h-4 border-2 border-transparent rounded-full animate-spin" style={{ borderTopColor: 'white' }} /> Публикация...</>
+                : <><Icon name="Zap" size={16} /> Запустить сейчас</>}
+            </button>
+          </div>
         </div>
 
         {/* Progress bar */}

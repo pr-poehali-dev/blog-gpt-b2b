@@ -1,3 +1,5 @@
 {
+  "articles-api": "https://functions.poehali.dev/03a07e2c-8b9c-453a-89a9-7b23cd24dc1e",
+  "scheduler": "https://functions.poehali.dev/c8a1ae46-1a23-4425-85d2-6c33f0b05df7",
   "generate-article": "https://functions.poehali.dev/f47fc20b-570d-48b0-94b8-4ff2bfa89ef3"
 }
