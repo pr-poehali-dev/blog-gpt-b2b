@@ -316,7 +316,7 @@ const Article = () => {
                   </div>
                 )}
                 <div className="mt-12 pt-8 border-t border-border flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">Материал создан с помощью GPT-4o mini</span>
+                  <span className="text-xs text-muted-foreground">Материал создан при поддержке iHUNT</span>
                 </div>
               </article>
             )}
