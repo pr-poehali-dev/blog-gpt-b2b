@@ -65,7 +65,7 @@ def handler(event: dict, context) -> dict:
     }).encode('utf-8')
 
     req = urllib.request.Request(
-        'https://api.openai.com/v1/chat/completions',
+        'https://polza.ai/api/v1/chat/completions',
         data=payload,
         headers={
             'Authorization': f'Bearer {api_key}',
