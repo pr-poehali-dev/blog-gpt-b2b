@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+import random
 import urllib.request
 import urllib.parse
 import psycopg2
@@ -192,14 +193,15 @@ def handler(event: dict, context) -> dict:
 
         # 4. Сохраняем
         article_key = f"{category_slug}_{uuid.uuid4().hex[:8]}"
+        initial_views = random.randint(500, 3500)
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO articles
                (article_key, category_slug, article_id, title, category_name, excerpt,
-                content, image_url, read_time, is_published, published_at)
-               VALUES (%s, %s, 0, %s, %s, %s, %s, %s, %s, TRUE, NOW())""",
+                content, image_url, read_time, views, is_published, published_at)
+               VALUES (%s, %s, 0, %s, %s, %s, %s, %s, %s, %s, TRUE, NOW())""",
             (article_key, category_slug, title, category_name, excerpt,
-             json.dumps(content, ensure_ascii=False), image_url, f"{read_minutes} мин")
+             json.dumps(content, ensure_ascii=False), image_url, f"{read_minutes} мин", initial_views)
         )
         conn.commit()
 

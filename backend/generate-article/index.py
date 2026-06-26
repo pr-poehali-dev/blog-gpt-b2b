@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import urllib.request
 import urllib.parse
 import psycopg2
@@ -222,15 +223,17 @@ def handler(event: dict, context) -> dict:
     unsplash_query = content.pop('unsplash_query', f"{title[:30]}")
     image_url = fetch_unsplash_image(unsplash_query, seed=int(article_id))
 
+    initial_views = random.randint(500, 3500)
+
     # Сохранить / обновить в БД
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        """INSERT INTO articles (article_key, category_slug, article_id, title, category_name, excerpt, content, image_url)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """INSERT INTO articles (article_key, category_slug, article_id, title, category_name, excerpt, content, image_url, views)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
            ON CONFLICT (article_key) DO UPDATE
            SET content = EXCLUDED.content, image_url = EXCLUDED.image_url, updated_at = NOW()""",
-        (article_key, category_slug, int(article_id), title, category, excerpt, json.dumps(content, ensure_ascii=False), image_url)
+        (article_key, category_slug, int(article_id), title, category, excerpt, json.dumps(content, ensure_ascii=False), image_url, initial_views)
     )
     conn.commit()
     conn.close()
