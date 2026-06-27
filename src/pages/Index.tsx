@@ -38,17 +38,28 @@ const Index = () => {
   const [loadingArticles, setLoadingArticles] = useState(true);
 
   useEffect(() => {
-    // Загружаем статьи из БД — все категории или конкретная
-    const url = active === 'Все'
-      ? ARTICLES_API
-      : `${ARTICLES_API}?category_slug=${categories.find(c => c.name === active)?.slug || ''}`;
-
     setLoadingArticles(true);
-    fetch(url)
-      .then((r) => r.json())
-      .then((data) => setAllArticles(data.articles || []))
-      .catch(() => setAllArticles([]))
-      .finally(() => setLoadingArticles(false));
+
+    if (active === 'Все') {
+      // Запрашиваем по одной свежей статье из каждой категории параллельно
+      Promise.all(
+        categories.map(c =>
+          fetch(`${ARTICLES_API}?category_slug=${c.slug}`)
+            .then(r => r.json())
+            .then(data => (data.articles || [])[0] || null)
+            .catch(() => null)
+        )
+      )
+        .then(results => setAllArticles(results.filter(Boolean) as DbArticle[]))
+        .finally(() => setLoadingArticles(false));
+    } else {
+      const slug = categories.find(c => c.name === active)?.slug || '';
+      fetch(`${ARTICLES_API}?category_slug=${slug}`)
+        .then(r => r.json())
+        .then(data => setAllArticles(data.articles || []))
+        .catch(() => setAllArticles([]))
+        .finally(() => setLoadingArticles(false));
+    }
   }, [active]);
 
   useSeo({
@@ -82,14 +93,8 @@ const Index = () => {
 
   const activeCategory = categories.find((c) => c.name === active) ?? null;
 
-  // Для "Все" — по одной свежей статье из каждой категории
-  const visibleArticles = active === 'Все'
-    ? categories.reduce<DbArticle[]>((acc, cat) => {
-        const latest = allArticles.find(a => a.category_slug === cat.slug);
-        if (latest) acc.push(latest);
-        return acc;
-      }, [])
-    : allArticles;
+  // allArticles уже содержит нужный набор (1 из каждой или все из категории)
+  const visibleArticles = allArticles;
 
   const featured = visibleArticles[0] ?? null;
   const rest = visibleArticles.slice(1, 7);
