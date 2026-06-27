@@ -155,7 +155,7 @@ const Index = () => {
         <div className="container py-20 md:py-28">
           <div className="reveal flex items-center gap-3 mb-7 text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
             <span className="w-8 h-px bg-accent" />
-            Деловой журнал · btwob.ru
+            Всё о деле · btwob.ru
           </div>
           <h1 className="reveal font-display text-5xl md:text-7xl lg:text-8xl font-700 leading-[0.95] tracking-tight max-w-4xl text-balance" style={{ animationDelay: '0.05s', fontWeight: 700 }}>
             Бизнес-аналитика,<br />которой <span className="text-accent">доверяют</span>
