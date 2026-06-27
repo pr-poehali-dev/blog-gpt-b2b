@@ -93,15 +93,27 @@ def handler(event: dict, context) -> dict:
             }
 
         else:
-            # Все последние статьи (для главной)
-            cur.execute(
-                """SELECT article_key, category_slug, category_name, title, excerpt,
-                          image_url, read_time, views, published_at
-                   FROM articles
-                   WHERE is_published = TRUE AND content != '{}'
-                   ORDER BY published_at DESC
-                   LIMIT 12""",
-            )
+            mode = params.get('mode', '')
+            if mode == 'home':
+                # Одним запросом — по одной свежей статье из каждой категории
+                cur.execute(
+                    """SELECT DISTINCT ON (category_slug)
+                              article_key, category_slug, category_name, title, excerpt,
+                              image_url, read_time, views, published_at
+                       FROM articles
+                       WHERE is_published = TRUE AND content != '{}'
+                       ORDER BY category_slug, published_at DESC""",
+                )
+            else:
+                # Все последние статьи
+                cur.execute(
+                    """SELECT article_key, category_slug, category_name, title, excerpt,
+                              image_url, read_time, views, published_at
+                       FROM articles
+                       WHERE is_published = TRUE AND content != '{}'
+                       ORDER BY published_at DESC
+                       LIMIT 12""",
+                )
             rows = cur.fetchall()
             articles = [
                 {

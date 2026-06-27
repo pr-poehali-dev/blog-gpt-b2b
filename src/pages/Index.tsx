@@ -41,16 +41,11 @@ const Index = () => {
     setLoadingArticles(true);
 
     if (active === 'Все') {
-      // Запрашиваем по одной свежей статье из каждой категории параллельно
-      Promise.all(
-        categories.map(c =>
-          fetch(`${ARTICLES_API}?category_slug=${c.slug}`)
-            .then(r => r.json())
-            .then(data => (data.articles || [])[0] || null)
-            .catch(() => null)
-        )
-      )
-        .then(results => setAllArticles(results.filter(Boolean) as DbArticle[]))
+      // Один запрос — по одной свежей статье из каждой категории
+      fetch(`${ARTICLES_API}?mode=home`)
+        .then(r => r.json())
+        .then(data => setAllArticles(data.articles || []))
+        .catch(() => setAllArticles([]))
         .finally(() => setLoadingArticles(false));
     } else {
       const slug = categories.find(c => c.name === active)?.slug || '';

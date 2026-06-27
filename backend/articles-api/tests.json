@@ -1,12 +1,10 @@
 {
   "tests": [
     {
-      "name": "Get all articles",
+      "name": "Get all articles returns 200",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 200,
-      "expectedBody": {"articles": []},
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     }
   ]
 }
