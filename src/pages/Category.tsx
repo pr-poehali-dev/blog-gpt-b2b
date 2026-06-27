@@ -92,7 +92,7 @@ const Category = () => {
             <div className="w-8 h-8 bg-foreground flex items-center justify-center">
               <span className="font-display font-bold text-background text-sm tracking-tight">B</span>
             </div>
-            <span className="font-display text-xl font-semibold tracking-tight">BTWOB</span>
+            <span className="font-display text-xl font-semibold tracking-tight">B2B - деловой журнал</span>
           </Link>
           <nav className="hidden md:flex items-center gap-9 text-sm font-medium">
             <Link to="/" className="underline-grow">Главная</Link>
@@ -263,10 +263,10 @@ const Category = () => {
             <div className="w-7 h-7 bg-foreground flex items-center justify-center">
               <span className="font-display font-bold text-background text-xs">B</span>
             </div>
-            <span className="font-display text-lg font-semibold tracking-tight">BTWOB</span>
+            <span className="font-display text-lg font-semibold tracking-tight">B2B - деловой журнал</span>
             <span className="text-sm text-muted-foreground ml-2">btwob.ru</span>
           </Link>
-          <span className="text-xs text-muted-foreground font-mono">© 2026 BTWOB</span>
+          <span className="text-xs text-muted-foreground font-mono">© 2026 btwob.ru</span>
         </div>
       </footer>
     </div>
