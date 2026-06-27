@@ -97,7 +97,7 @@ const Index = () => {
   const visibleArticles = allArticles;
 
   const featured = visibleArticles[0] ?? null;
-  const rest = visibleArticles.slice(1, 7);
+  const rest = visibleArticles.slice(1);
 
   return (
     <div className="min-h-screen bg-background grain text-foreground">
@@ -243,49 +243,10 @@ const Index = () => {
             </div>
           )}
 
-          {/* Featured */}
-          {!loadingArticles && featured && (() => {
-            const cat = categories.find(c => c.slug === featured.category_slug);
-            return (
-              <Link to={`/article/${featured.category_slug}/${featured.article_key}`} className="group grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16 pb-16 border-b border-border cursor-pointer block">
-                <div className="aspect-[4/3] overflow-hidden relative" style={{ background: `hsl(${cat?.accent || '222 80% 42%'})` }}>
-                  {featured.image_url ? (
-                    <img src={featured.image_url} alt={featured.title} className="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchPriority="high" />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Icon name={cat?.icon || 'FileText'} size={72} style={{ color: 'white', opacity: 0.6 }} />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
-                  <span className="absolute top-4 left-4 bg-white text-xs font-mono uppercase tracking-wider px-3 py-1" style={{ color: `hsl(${cat?.accent || '222 80% 42%'})` }}>
-                    {featured.category_name}
-                  </span>
-                </div>
-                <div className="flex flex-col justify-center">
-                  <div className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-5">
-                    <span style={{ color: `hsl(${cat?.accent || '222 80% 42%'})` }}>{featured.category_name}</span>
-                    <span>·</span>
-                    <span>{formatDate(featured.published_at)}</span>
-                  </div>
-                  <h3 className="font-display text-3xl md:text-4xl font-semibold leading-tight tracking-tight transition-opacity group-hover:opacity-75 text-balance">
-                    {featured.title}
-                  </h3>
-                  <p className="mt-5 text-muted-foreground leading-relaxed">{featured.excerpt}</p>
-                  <div className="mt-8 flex items-center gap-6 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><Icon name="Eye" size={15} /> {featured.views}</span>
-                    <span className="ml-auto flex items-center gap-1.5 font-medium" style={{ color: `hsl(${cat?.accent || '222 80% 42%'})` }}>
-                      Читать <Icon name="ArrowRight" size={15} />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            );
-          })()}
-
-          {/* Grid */}
-          {!loadingArticles && rest.length > 0 && (
+          {/* Grid — все 6 статей (по одной из каждой категории) */}
+          {!loadingArticles && visibleArticles.length > 0 && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-              {rest.map((a) => {
+              {visibleArticles.map((a) => {
                 const cat = categories.find(c => c.slug === a.category_slug);
                 return (
                   <Link to={`/article/${a.category_slug}/${a.article_key}`} key={a.article_key} className="group bg-background hover:bg-card transition-colors cursor-pointer flex flex-col overflow-hidden">
