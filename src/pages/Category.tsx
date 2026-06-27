@@ -92,7 +92,7 @@ const Category = () => {
             <div className="w-8 h-8 bg-foreground flex items-center justify-center">
               <span className="font-display font-bold text-background text-sm tracking-tight">B</span>
             </div>
-            <span className="font-display text-xl font-semibold tracking-tight">B2B - деловой журнал</span>
+            <span className="font-display text-base font-semibold tracking-tight hidden sm:block">B2B - деловой журнал</span>
           </Link>
           <nav className="hidden md:flex items-center gap-9 text-sm font-medium">
             <Link to="/" className="underline-grow">Главная</Link>

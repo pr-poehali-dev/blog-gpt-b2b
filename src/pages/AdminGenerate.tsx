@@ -81,7 +81,7 @@ const AdminGenerate = () => {
             <div className="w-8 h-8 bg-foreground flex items-center justify-center">
               <span className="font-display font-bold text-background text-sm">B</span>
             </div>
-            <span className="font-display text-xl font-semibold tracking-tight">B2B - деловой журнал</span>
+            <span className="font-display text-base font-semibold tracking-tight hidden sm:block">B2B - деловой журнал</span>
           </Link>
           <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground hidden md:block">
             Панель управления
