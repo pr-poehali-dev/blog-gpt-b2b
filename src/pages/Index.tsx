@@ -372,7 +372,7 @@ const Index = () => {
             <a href="#categories" className="underline-grow">Категории</a>
             <a href="#articles" className="underline-grow">Статьи</a>
           </nav>
-          <span className="text-xs text-muted-foreground font-mono">© 2026 BTWOB</span>
+          <span className="text-xs text-muted-foreground font-mono">© 2026 btwob.ru</span>
         </div>
       </footer>
     </div>
