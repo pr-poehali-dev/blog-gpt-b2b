@@ -6,7 +6,7 @@ import { useSeo } from '@/hooks/useSeo';
 import func2url from '../../backend/func2url.json';
 
 const ARTICLES_API = (func2url as Record<string, string>)['articles-api'];
-const GENERATE_URL = (func2url as Record<string, string>)['generate-article'];
+const GENERATE_URL = (func2url as Record<string, string>)['generate-article']; // только для POST (ручная генерация старых статей)
 
 interface Section {
   heading: string;
@@ -95,37 +95,12 @@ const Article = () => {
     setLoading(true);
     setError('');
 
-    // article_key может быть как UUID-ключ (новый формат), так и slug_id (старый)
+    // Загружаем статью из articles-api по article_key
     fetch(`${ARTICLES_API}?article_key=${articleId}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data && data.content?.intro) {
           setArticle(data);
-        } else {
-          // Старый формат: пробуем generate-article GET
-          const catSlug = categorySlug || '';
-          fetch(`${GENERATE_URL}?category_slug=${catSlug}&article_id=${articleId}`)
-            .then((r) => r.ok ? r.json() : null)
-            .then((legacyData) => {
-              if (legacyData?.content?.intro) {
-                // Собираем совместимый объект
-                const staticCat = getCategory(catSlug);
-                const staticArt = staticCat?.articles.find((a) => String(a.id) === articleId);
-                setArticle({
-                  article_key: articleId,
-                  category_slug: catSlug,
-                  title: staticArt?.title || '',
-                  category_name: staticCat?.name || '',
-                  excerpt: staticArt?.excerpt || '',
-                  content: legacyData.content,
-                  image_url: legacyData.image_url || null,
-                  read_time: staticArt?.read || '5 мин',
-                  views: 0,
-                  published_at: new Date().toISOString(),
-                });
-              }
-            })
-            .catch(() => {});
         }
       })
       .catch(() => {})
