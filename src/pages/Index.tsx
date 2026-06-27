@@ -364,7 +364,7 @@ const Index = () => {
             <div className="w-7 h-7 bg-foreground flex items-center justify-center">
               <span className="font-display font-bold text-background text-xs">B</span>
             </div>
-            <span className="font-display text-lg font-semibold tracking-tight">B2B</span>
+            <span className="font-display text-lg font-semibold tracking-tight">BTWOB</span>
             <span className="text-sm text-muted-foreground ml-2"></span>
           </div>
           <nav className="flex items-center gap-8 text-sm text-muted-foreground">
