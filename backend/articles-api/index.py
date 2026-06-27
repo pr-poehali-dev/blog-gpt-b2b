@@ -64,22 +64,36 @@ def handler(event: dict, context) -> dict:
             }
 
         elif category_slug:
-            # Список статей категории с поддержкой пагинации
+            # Список статей с исключением уже показанных (exclude) и лимитом
             try:
-                offset = int(params.get('offset', 0))
                 limit = int(params.get('limit', 20))
             except (ValueError, TypeError):
-                offset, limit = 0, 20
+                limit = 20
             limit = min(limit, 50)
 
-            cur.execute(
-                """SELECT article_key, title, excerpt, image_url, read_time, views, published_at
-                   FROM articles
-                   WHERE category_slug = %s AND is_published = TRUE AND content != '{}'
-                   ORDER BY published_at DESC
-                   LIMIT %s OFFSET %s""",
-                (category_slug, limit, offset)
-            )
+            exclude_raw = params.get('exclude', '')
+            exclude_keys = [k.strip() for k in exclude_raw.split(',') if k.strip()]
+
+            if exclude_keys:
+                placeholders = ','.join(['%s'] * len(exclude_keys))
+                cur.execute(
+                    f"""SELECT article_key, title, excerpt, image_url, read_time, views, published_at
+                       FROM articles
+                       WHERE category_slug = %s AND is_published = TRUE AND content != '{{}}'
+                       AND article_key NOT IN ({placeholders})
+                       ORDER BY published_at DESC
+                       LIMIT %s""",
+                    [category_slug] + exclude_keys + [limit]
+                )
+            else:
+                cur.execute(
+                    """SELECT article_key, title, excerpt, image_url, read_time, views, published_at
+                       FROM articles
+                       WHERE category_slug = %s AND is_published = TRUE AND content != '{}'
+                       ORDER BY published_at DESC
+                       LIMIT %s""",
+                    (category_slug, limit)
+                )
             rows = cur.fetchall()
             articles = [
                 {

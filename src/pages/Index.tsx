@@ -41,30 +41,33 @@ const Index = () => {
   const [hasMore, setHasMore] = useState(false);
   const PAGE_SIZE = 6;
 
-  const fetchArticles = (filterActive: string, currentPage: number, append = false) => {
+  const fetchArticles = (filterActive: string, shownKeys: string[], append = false) => {
     const loading = append ? setLoadingMore : (v: boolean) => setLoadingArticles(v);
     loading(true);
 
+    // Строим параметр exclude из уже показанных ключей
+    const excludeParam = shownKeys.length ? `&exclude=${shownKeys.join(',')}` : '';
+
     if (filterActive === 'Все') {
-      // Страница 1 — по одной из каждой категории
-      // Страница 2+ — следующие по одной из каждой (offset)
-      const offset = (currentPage - 1) * 1; // по 1 из каждой на страницу
+      // По одной новой статье из каждой категории, исключая уже показанные
       Promise.all(
-        categories.map(c =>
-          fetch(`${ARTICLES_API}?category_slug=${c.slug}&offset=${offset}`)
+        categories.map(c => {
+          // Ключи уже показанных из этой категории
+          const catExclude = shownKeys.filter(k => k.startsWith(c.slug + '_'));
+          const ex = catExclude.length ? `&exclude=${catExclude.join(',')}` : '';
+          return fetch(`${ARTICLES_API}?category_slug=${c.slug}&limit=1${ex}`)
             .then(r => r.json())
             .then(d => (d.articles || [])[0] || null)
-            .catch(() => null)
-        )
+            .catch(() => null);
+        })
       ).then(results => {
         const fresh = results.filter(Boolean) as DbArticle[];
         setAllArticles(prev => append ? [...prev, ...fresh] : fresh);
-        setHasMore(fresh.length === categories.length);
+        setHasMore(fresh.length > 0);
       }).finally(() => loading(false));
     } else {
       const slug = categories.find(c => c.name === filterActive)?.slug || '';
-      const offset = (currentPage - 1) * PAGE_SIZE;
-      fetch(`${ARTICLES_API}?category_slug=${slug}&offset=${offset}&limit=${PAGE_SIZE}`)
+      fetch(`${ARTICLES_API}?category_slug=${slug}&limit=${PAGE_SIZE}${excludeParam}`)
         .then(r => r.json())
         .then(data => {
           const fresh = data.articles || [];
@@ -79,13 +82,12 @@ const Index = () => {
   useEffect(() => {
     setPage(1);
     setHasMore(false);
-    fetchArticles(active, 1, false);
+    fetchArticles(active, [], false);
   }, [active]);
 
   const loadMore = () => {
-    const next = page + 1;
-    setPage(next);
-    fetchArticles(active, next, true);
+    setPage(p => p + 1);
+    fetchArticles(active, allArticles.map(a => a.article_key), true);
   };
 
   useSeo({
