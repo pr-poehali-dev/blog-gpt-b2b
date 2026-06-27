@@ -77,7 +77,7 @@ def handler(event: dict, context) -> dict:
             if exclude_keys:
                 placeholders = ','.join(['%s'] * len(exclude_keys))
                 cur.execute(
-                    f"""SELECT article_key, title, excerpt, image_url, read_time, views, published_at
+                    f"""SELECT article_key, category_slug, category_name, title, excerpt, image_url, read_time, views, published_at
                        FROM articles
                        WHERE category_slug = %s AND is_published = TRUE AND content != '{{}}'
                        AND article_key NOT IN ({placeholders})
@@ -87,7 +87,7 @@ def handler(event: dict, context) -> dict:
                 )
             else:
                 cur.execute(
-                    """SELECT article_key, title, excerpt, image_url, read_time, views, published_at
+                    """SELECT article_key, category_slug, category_name, title, excerpt, image_url, read_time, views, published_at
                        FROM articles
                        WHERE category_slug = %s AND is_published = TRUE AND content != '{}'
                        ORDER BY published_at DESC
@@ -98,12 +98,14 @@ def handler(event: dict, context) -> dict:
             articles = [
                 {
                     'article_key': r[0],
-                    'title': r[1],
-                    'excerpt': r[2],
-                    'image_url': r[3],
-                    'read_time': r[4],
-                    'views': r[5],
-                    'published_at': r[6].isoformat() if r[6] else None,
+                    'category_slug': r[1],
+                    'category_name': r[2],
+                    'title': r[3],
+                    'excerpt': r[4],
+                    'image_url': r[5],
+                    'read_time': r[6],
+                    'views': r[7],
+                    'published_at': r[8].isoformat() if r[8] else None,
                 }
                 for r in rows
             ]
