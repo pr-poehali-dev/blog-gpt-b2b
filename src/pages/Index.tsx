@@ -36,26 +36,57 @@ const Index = () => {
   const [active, setActive] = useState('Все');
   const [allArticles, setAllArticles] = useState<DbArticle[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const PAGE_SIZE = 6;
+
+  const fetchArticles = (filterActive: string, currentPage: number, append = false) => {
+    const loading = append ? setLoadingMore : (v: boolean) => setLoadingArticles(v);
+    loading(true);
+
+    if (filterActive === 'Все') {
+      // Страница 1 — по одной из каждой категории
+      // Страница 2+ — следующие по одной из каждой (offset)
+      const offset = (currentPage - 1) * 1; // по 1 из каждой на страницу
+      Promise.all(
+        categories.map(c =>
+          fetch(`${ARTICLES_API}?category_slug=${c.slug}&offset=${offset}`)
+            .then(r => r.json())
+            .then(d => (d.articles || [])[0] || null)
+            .catch(() => null)
+        )
+      ).then(results => {
+        const fresh = results.filter(Boolean) as DbArticle[];
+        setAllArticles(prev => append ? [...prev, ...fresh] : fresh);
+        setHasMore(fresh.length === categories.length);
+      }).finally(() => loading(false));
+    } else {
+      const slug = categories.find(c => c.name === filterActive)?.slug || '';
+      const offset = (currentPage - 1) * PAGE_SIZE;
+      fetch(`${ARTICLES_API}?category_slug=${slug}&offset=${offset}&limit=${PAGE_SIZE}`)
+        .then(r => r.json())
+        .then(data => {
+          const fresh = data.articles || [];
+          setAllArticles(prev => append ? [...prev, ...fresh] : fresh);
+          setHasMore(fresh.length === PAGE_SIZE);
+        })
+        .catch(() => { setAllArticles([]); setHasMore(false); })
+        .finally(() => loading(false));
+    }
+  };
 
   useEffect(() => {
-    setLoadingArticles(true);
-
-    if (active === 'Все') {
-      // Один запрос — по одной свежей статье из каждой категории
-      fetch(`${ARTICLES_API}?mode=home`)
-        .then(r => r.json())
-        .then(data => setAllArticles(data.articles || []))
-        .catch(() => setAllArticles([]))
-        .finally(() => setLoadingArticles(false));
-    } else {
-      const slug = categories.find(c => c.name === active)?.slug || '';
-      fetch(`${ARTICLES_API}?category_slug=${slug}`)
-        .then(r => r.json())
-        .then(data => setAllArticles(data.articles || []))
-        .catch(() => setAllArticles([]))
-        .finally(() => setLoadingArticles(false));
-    }
+    setPage(1);
+    setHasMore(false);
+    fetchArticles(active, 1, false);
   }, [active]);
+
+  const loadMore = () => {
+    const next = page + 1;
+    setPage(next);
+    fetchArticles(active, next, true);
+  };
 
   useSeo({
     title: 'BTWOB — B2B деловой журнал о стратегии, финансах и технологиях',
@@ -272,9 +303,20 @@ const Index = () => {
             </div>
           )}
 
-          {/* Link to full category */}
-          {activeCategory && (
-            <div className="mt-10 flex justify-center">
+          {/* Load more / category link */}
+          <div className="mt-10 flex items-center justify-center gap-4">
+            {hasMore && (
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 px-8 py-3.5 text-sm font-medium border border-border hover:border-foreground transition-colors disabled:opacity-50"
+              >
+                {loadingMore
+                  ? <><div className="w-4 h-4 border-2 border-transparent rounded-full animate-spin" style={{ borderTopColor: 'hsl(var(--foreground))' }} />Загрузка...</>
+                  : <><Icon name="ChevronDown" size={16} />Загрузить ещё</>}
+              </button>
+            )}
+            {activeCategory && (
               <Link
                 to={`/category/${activeCategory.slug}`}
                 className="flex items-center gap-2 px-8 py-3.5 text-sm font-medium text-background transition-opacity hover:opacity-85"
@@ -283,8 +325,8 @@ const Index = () => {
                 Все статьи: {activeCategory.name}
                 <Icon name="ArrowRight" size={16} />
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </section>
 

@@ -64,14 +64,21 @@ def handler(event: dict, context) -> dict:
             }
 
         elif category_slug:
-            # Список статей категории
+            # Список статей категории с поддержкой пагинации
+            try:
+                offset = int(params.get('offset', 0))
+                limit = int(params.get('limit', 20))
+            except (ValueError, TypeError):
+                offset, limit = 0, 20
+            limit = min(limit, 50)
+
             cur.execute(
                 """SELECT article_key, title, excerpt, image_url, read_time, views, published_at
                    FROM articles
                    WHERE category_slug = %s AND is_published = TRUE AND content != '{}'
                    ORDER BY published_at DESC
-                   LIMIT 20""",
-                (category_slug,)
+                   LIMIT %s OFFSET %s""",
+                (category_slug, limit, offset)
             )
             rows = cur.fetchall()
             articles = [
